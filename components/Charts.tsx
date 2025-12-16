@@ -7,7 +7,7 @@ interface Props {
   inputs: ProjectInputs;
 }
 
-const COLORS = ['#22c55e', '#3b82f6', '#f97316', '#ef4444'];
+const COLORS = ['#22c55e', '#3b82f6', '#f97316', '#ef4444', '#8b5cf6'];
 
 const CustomPieTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
@@ -188,5 +188,60 @@ export const UnitDistributionChart: React.FC<{ data: UnitMix[] }> = ({ data }) =
         </Bar>
       </BarChart>
     </ResponsiveContainer>
+  );
+};
+
+export const PhaseCostChart: React.FC<Props> = ({ inputs }) => {
+  const chartData = inputs.constructionPhases.map((phase, index) => ({
+    name: phase.name,
+    cost: phase.costPerMeter * inputs.grossTotalArea,
+    fill: COLORS[index % COLORS.length],
+  }));
+
+  const formatYAxis = (tickItem: number) => {
+    if (tickItem === 0) return '۰';
+    return `${toPersianDigits(Math.round(tickItem / 1_000_000_000))} M`;
+  };
+
+  return (
+    <div className="h-64 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 40 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+            <XAxis 
+            dataKey="name" 
+            tick={{ fontFamily: 'Vazirmatn', fontSize: 10, fill: '#6b7280' }} 
+            interval={0}
+            angle={-45}
+            textAnchor="end"
+            />
+            <YAxis 
+            tickFormatter={formatYAxis}
+            tick={{ fontFamily: 'Vazirmatn', fontSize: 10, fill: '#6b7280' }}
+            axisLine={false}
+            tickLine={false}
+            />
+            <Tooltip
+            cursor={{ fill: '#f9fafb' }}
+            content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                return (
+                    <div className="bg-white/95 backdrop-blur-sm px-3 py-2 rounded-xl shadow-lg border border-gray-100 text-xs">
+                    <p className="font-bold text-gray-800 mb-1">{payload[0].payload.name}</p>
+                    <p className="text-gray-600">هزینه کل: <span className="font-bold">{formatCurrency(payload[0].value as number)}</span> تومان</p>
+                    </div>
+                );
+                }
+                return null;
+            }}
+            />
+            <Bar dataKey="cost" radius={[5, 5, 0, 0]}>
+            {chartData.map((entry) => (
+                <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+            ))}
+            </Bar>
+        </BarChart>
+        </ResponsiveContainer>
+    </div>
   );
 };

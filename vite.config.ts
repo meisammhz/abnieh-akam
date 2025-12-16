@@ -1,3 +1,6 @@
+// FIX: Added a triple-slash directive to include Node.js types. This resolves the TypeScript error where 'cwd' was not found on 'process'.
+/// <reference types="node" />
+
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 

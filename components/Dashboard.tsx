@@ -2,6 +2,7 @@ import React from 'react';
 import { ProjectInputs, UnitMix } from '../types';
 import { toPersianDigits, formatCurrency } from '../utils';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { PhaseCostChart } from './Charts';
 
 
 interface Props {
@@ -294,6 +295,9 @@ const Dashboard: React.FC<Props> = ({ inputs }) => {
                         </div>
                     ))}
                  </div>
+                 <hr className="my-6 border-gray-100" />
+                 <h3 className="text-base font-bold text-gray-800 mb-4">هزینه کل ساخت به تفکیک فاز</h3>
+                 <PhaseCostChart inputs={inputs} />
               </div>
         </div>
 
