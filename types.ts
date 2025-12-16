@@ -1,39 +1,71 @@
+export interface ConstructionPhase {
+  id: number;
+  name: string;
+  durationMonths: number;
+  costPerMeter: number;
+}
+
+export interface UnitMix {
+  size: string;
+  percentage: number;
+}
+
+export interface Installment {
+  id: number;
+  name: string;
+  amount: number;
+  dueMonth: number;
+}
+
 export interface ProjectInputs {
   projectName: string;
-  companyLogo: string; // New: Logo URL
+  companyLogo: string;
+  facadeImage: string;
   
   // Areas & Dimensions
-  landArea: number; // Metrazh Zamin
-  parkingOccupancyPercentage: number; // New: Satah Eshghal Parking/Paye (e.g. 80%)
-  residentialOccupancyPercentage: number; // New: Satah Eshghal Borj/Maskooni (e.g. 40%)
+  landArea: number;
+  parkingOccupancyPercentage: number;
+  residentialOccupancyPercentage: number;
   
-  grossTotalArea: number; // Zirbana Kol (Nakhales)
-  totalArea: number; // Net Residential (Khales Mofid)
-  commercialArea: number; 
+  grossTotalArea: number;
+  netResidentialArea: number;
+  netCommercialArea: number; 
   
   // Structure
   floors: number;
+  undergroundFloors: number;
   blocks: number;
-  constructionType: string;
+  constructionType: 'Steel' | 'Concrete' | 'TunnelForm';
+  landCondition: 'Normal' | 'Sloped' | 'Complex';
   facade: string;
   
   // Timing & Costs
-  durationMonths: number;
-  elapsedMonths: number; // New: Months passed since start
-  constructionCostPerMeter: number;
-  baseConstructionCost: number; // Hazine Payeh
+  elapsedMonths: number;
+  constructionPhases: ConstructionPhase[];
   
   // Sales
   unitShareSize: number;
-  unitSharePrice: number; // Total price for 10m share (e.g. 650,000,000)
-  secondPaymentDate: string; // New: Date for the 2nd 50% payment
+  unitSharePrice: number; // Note: This might become redundant with installments
+  installments: Installment[];
+  secondPaymentDate: string;
   additionalFee: number;
+  unitMix: UnitMix[]; 
   
   // Scenarios & Quality
   constructionQuality: 'Standard' | 'Luxury' | 'SuperLuxury'; 
-  pessimisticGrowth: number; // %
-  optimisticGrowth: number; // %
+  pessimisticMarketGrowth: number;
+  optimisticMarketGrowth: number;
+  constructionCostEscalation: number;
   
+  // Overheads
+  adminOverheadPercentage: number;
+  salesCommissionPercentage: number;
+
+  // Market & Strategic Analysis
+  marketPricePerMeter: number;
+  projectVibe: string; 
+  locationAdvantages: string; 
+
   // Descriptions
   location: string;
   access: string;
@@ -41,14 +73,27 @@ export interface ProjectInputs {
   architectureStyle: string; 
   commonAmenities: string; 
   builderResume: string; 
+  constructionDescription: string;
+  facadeDescription: string;
+  coreShellDescription: string;
+
+  // Technical Details
+  foundationSystem: string;
+  roofSystem: string;
+  interiorFinishes: string;
+  hvacSystem: string;
+  electricalSystem: string;
 }
 
 export interface ProposalContent {
   executiveSummary: string;
-  locationAnalysis: string;
-  financialOutlook: string;
-  architecturalVision: string;
-  riskAssessment: string;
+  architecturalDeepDive: string;
+  locationAndAccessAnalysis: string;
+  financialModelAndProfitability: string;
+  investorValueProposition: string;
+  riskAndMitigation: string;
+  conceptualImage: string; 
+  conceptualImagePrompt: string;
 }
 
 export enum ViewMode {

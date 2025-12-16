@@ -3,62 +3,102 @@ import InputSidebar from './components/InputSidebar';
 import Dashboard from './components/Dashboard';
 import ProposalView from './components/ProposalView';
 import { ProjectInputs, ProposalContent, ViewMode } from './types';
-import { generateProposalContent } from './services/geminiService';
+import { generateProposalContent, suggestConstructionPhases } from './services/geminiService';
 
 const INITIAL_INPUTS: ProjectInputs = {
-  projectName: 'نارنجستان ۷',
-  companyLogo: 'https://via.placeholder.com/500x150/ffffff/16a34a?text=NOVIN+SAZ+ABNIEH+AKAM+Co.',
+  projectName: 'پروژه نارنجستان ۷',
+  companyLogo: '',
+  facadeImage: '',
   
-  // Areas
-  landArea: 10000, 
-  parkingOccupancyPercentage: 81.5, 
-  residentialOccupancyPercentage: 45, 
+  // Areas & Dimensions
+  landArea: 18500,
+  parkingOccupancyPercentage: 80, 
+  residentialOccupancyPercentage: 40, 
   
-  grossTotalArea: 85000, 
-  totalArea: 55000, 
-  commercialArea: 5000, 
+  grossTotalArea: 55000,
+  netResidentialArea: 41000,
+  netCommercialArea: 7000,
   
   // Structure
-  floors: 12,
-  blocks: 4, 
-  constructionType: 'بتنی',
-  facade: 'تلفیقی مدرن',
+  floors: 13,
+  undergroundFloors: 4, 
+  blocks: 3,
+  constructionType: 'Concrete',
+  landCondition: 'Normal',
+  facade: 'تلفیقی مدرن (کرتین وال و سنگ)',
   
   // Timing & Costs
-  durationMonths: 42,
-  elapsedMonths: 6, // Default progress
-  constructionCostPerMeter: 70000000, // Ali-al-hesab
-  baseConstructionCost: 55000000,
+  elapsedMonths: 0,
+  constructionPhases: [
+    { id: 1, name: 'گودبرداری و فونداسیون', durationMonths: 9, costPerMeter: 18000000 },
+    { id: 2, name: 'اسکلت و سقف‌ها', durationMonths: 12, costPerMeter: 28000000 },
+    { id: 3, name: 'سفت‌کاری و نما', durationMonths: 12, costPerMeter: 24000000 },
+    { id: 4, name: 'نازک‌کاری و تاسیسات', durationMonths: 9, costPerMeter: 15000000 },
+  ],
   
   // Sales
   unitShareSize: 10,
-  unitSharePrice: 650000000, // 650 Million Toman Total (65m per meter)
-  secondPaymentDate: '1403/12/20', // Default date for second payment
-  additionalFee: 0,
+  unitSharePrice: 630000000, // Legacy, cost is now based on installments
+  installments: [
+    { id: 1, name: 'پرداخت اولیه (زمین و تراکم)', amount: 680000000, dueMonth: 0 },
+    { id: 2, name: 'شروع اسکلت', amount: 250000000, dueMonth: 9 },
+    { id: 3, name: 'اتمام سفت‌کاری', amount: 250000000, dueMonth: 21 },
+    { id: 4, name: 'شروع نازک‌کاری', amount: 200000000, dueMonth: 33 },
+    { id: 5, name: 'تحویل واحد', amount: 150000000, dueMonth: 42 },
+  ],
+  secondPaymentDate: '1403/12/20',
+  additionalFee: 50000000,
+  unitMix: [
+    { size: '۶۰-۸۰ متر', percentage: 25 },
+    { size: '۸۰-۱۰۰ متر', percentage: 50 },
+    { size: '۱۰۰-۱۲۰ متر', percentage: 25 },
+  ],
   
   // Scenarios
-  constructionQuality: 'SuperLuxury',
-  pessimisticGrowth: 35,
-  optimisticGrowth: 65,
+  constructionQuality: 'Luxury',
+  pessimisticMarketGrowth: 25,
+  optimisticMarketGrowth: 45,
+  constructionCostEscalation: 30,
+
+  // Overheads
+  adminOverheadPercentage: 15,
+  salesCommissionPercentage: 3,
+
+  // Market & Strategic Analysis
+  marketPricePerMeter: 250000000,
+  projectVibe: "یک برج باغ مدرن و لوکس در قلب یکی از اصیل‌ترین و آرام‌ترین محله‌های غرب تهران، طراحی شده برای خانواده‌هایی که به دنبال ترکیبی از آرامش، دسترسی شهری و امکانات رفاهی کامل هستند.",
+  locationAdvantages: "دسترسی به مترو صادقیه (۵ دقیقه), نزدیکی به مرکز خرید هایپراستار باکری, فاصله کوتاه تا فرودگاه مهرآباد, بافت شهری اصیل و آرام, مجاورت با پارک ارم و فضای سبز, دسترسی سریع به بزرگراه حکیم و ستاری",
   
-  // Description
-  location: 'تهران، منطقه ۵، بلوار فردوس غرب',
-  access: 'دسترسی سریع به بزرگراه حکیم، ستاری و باکری، نزدیکی به مترو ارم سبز',
-  projectDescription: 'پروژه لوکس نارنجستان ۷ شامل ۵ طبقه منفی پارکینگ، پودیوم تجاری/لابی با سطح اشغال ۸۱۵۰ متر و برج‌های مسکونی.',
-  architectureStyle: 'معماری مدرن با رویکرد سبز، طراحی پودیوم یکپارچه و لابی هتلینگ با سقف مرتفع.',
-  commonAmenities: 'لابی مجلل، سالن اجتماعات، سالن ورزش، استخر و سونا، روف گاردن، کارواش اختصاصی، سیستم هوشمند BMS.',
-  builderResume: 'شرکت تعاونی عمرانی نوین ساز ابنیه آکام با سابقه درخشان در ساخت پروژه‌های موفق نارنجستان.',
+  // Descriptions
+  location: 'تهران، منطقه ۵، بلوار فردوس غرب، بلوار بهار جنوبی',
+  access: 'دسترسی سریع و چندجهته به شریان‌های اصلی غرب تهران شامل بزرگراه‌های حکیم، ستاری، باکری و تهران-کرج',
+  projectDescription: 'این پروژه عظیم شامل ۵۵۰۰۰ متر مربع فضای مفید است که ۷۰۰۰ متر آن تجاری (متعلق به مالک زمین) و ۴۸۰۰۰ متر آن مسکونی می‌باشد. پروژه به صورت مستقل توسط شرکت تعاونی عمرانی نوین ساز ابنیه آکام اجرا می‌شود. واگذاری در فاز اول به صورت امتیاز سهام‌های ۱۰ متری با قیمت قطعی ۶۸۰ میلیون تومان (بابت زمین و تراکم مفید - متری ۶۸ میلیون) انجام می‌شود. هزینه ساخت نیز به صورت علی‌الحساب متری ۷۰ میلیون تومان برآورد شده است که مجموع هزینه پایه را به ۱۳۸ میلیون تومان می‌رساند.',
+  architectureStyle: 'معماری مدرن و پایدار با استفاده از سیستم‌های هوشمند BMS، دارای لابی مجلل هتلی، روف گاردن ۳۶۰ درجه و فضاهای سبز عمودی.',
+  commonAmenities: 'مجموعه آبی کامل (استخر، سونا، جکوزی)، سالن بدنسازی مجهز، سالن اجتماعات چندمنظوره، مهدکودک اختصاصی، سینما، کارواش و خشکشویی مرکزی.',
+  builderResume: 'شرکت تعاونی عمرانی نوین ساز ابنیه آکام، سازنده تخصصی و مستقل بدون مشارکت پیمانکار ثالث، با سابقه درخشان در انبوه سازی منطقه ۲۲ تهران.',
+  constructionDescription: 'عملیات ساخت با رعایت کامل مقررات ملی ساختمان و با استفاده از به‌روزترین تکنولوژی‌های صنعتی‌سازی انجام خواهد شد. نظارت دقیق و کنترل کیفیت مصالح در تمامی مراحل از اولویت‌های اصلی پروژه است.',
+  facadeDescription: 'نمای پروژه با الهام از معماری مدرن اروپایی، ترکیبی هوشمندانه از سنگ تراورتن عباس‌آباد و پنل‌های کرتین وال با شیشه‌های لمینت دوجداره است که علاوه بر زیبایی بصری، عایق کامل حرارتی و صوتی را فراهم می‌آورد.',
+  coreShellDescription: 'سازه بتنی پروژه با سیستم سقف وافل دوطرفه اجرا می‌شود که علاوه بر ایجاد دهانه‌های بزرگ و حذف ستون‌های مزاحم در پارکینگ و فضاهای داخلی، مقاومت بسیار بالایی در برابر زلزله دارد.',
+
+  // Technical Details
+  foundationSystem: "فونداسیون رادیه ژنرال (گسترده)",
+  roofSystem: "سقف وافل دوطرفه",
+  interiorFinishes: "دیوارها کناف با رنگ‌آمیزی درجه یک، کف سرامیک پرسلان سایز بزرگ، شیرآلات توکار برند KWC",
+  hvacSystem: "سیستم سرمایش و گرمایش مرکزی با چیلر و فن‌کویل",
+  electricalSystem: "سیستم برق هوشمند (BMS) با قابلیت کنترل از راه دور، کلید و پریز برند Schneider",
 };
 
 const INITIAL_CONTENT: ProposalContent = {
-  executiveSummary: "پروژه نارنجستان ۷ در یکی از بهترین نقاط منطقه ۵ تهران (بلوار فردوس غرب) واقع شده است. سازه شامل ۵ طبقه منفی پارکینگ و تاسیسات، یک طبقه همکف پودیوم با مساحت ۸۱۵۰ متر مربع و بلوک‌های مسکونی ۱۲ طبقه متصل به هم بر روی پودیوم می‌باشد.",
-  locationAnalysis: "منطقه ۵ تهران به دلیل بافت مدرن، خیابان‌کشی اصولی و دسترسی فوق‌العاده به شریان‌های اصلی غرب تهران، یکی از پرتقاضاترین مناطق برای سکونت و سرمایه‌گذاری است. موقعیت پروژه دسترسی عالی به بزرگراه‌ها و مراکز خرید را فراهم می‌کند.",
-  financialOutlook: "با توجه به قیمت زمین در این منطقه و تراکم مفید پروژه، ارزش افزوده سهام پس از تکمیل اسکلت و سفت‌کاری جهش قابل توجهی خواهد داشت. پیش‌بینی بازدهی سرمایه در این پروژه بیش از ۶۰٪ نسبت به تورم عمومی مسکن است.",
-  architecturalVision: "معماری پروژه بر اساس اتصال بلوک‌ها بر روی یک پودیوم عظیم طراحی شده است. لابی با سقف بلند، فضایی هتلینگ و بی‌نظیر را ایجاد می‌کند. ۵ طبقه پارکینگ منفی نیاز تمام واحدها و بخش تجاری را تامین می‌نماید.",
-  riskAssessment: "هزینه ساخت متری ۷۰ میلیون تومان به‌صورت علی‌الحساب بوده و تغییرات نرخ تورم و مصالح در مجمع عمومی سالانه بررسی و لحاظ می‌گردد."
+  executiveSummary: "برای مشاهده تحلیل جامع، لطفاً اطلاعات پروژه را در سایدبار تنظیم کرده و روی دکمه 'بروزرسانی پروپوزال' کلیک کنید.",
+  architecturalDeepDive: "در انتظار تحلیل...",
+  locationAndAccessAnalysis: "در انتظار تحلیل...",
+  financialModelAndProfitability: "در انتظار تحلیل...",
+  investorValueProposition: "در انتظار تحلیل...",
+  riskAndMitigation: "در انتظار تحلیل...",
+  conceptualImage: "",
+  conceptualImagePrompt: "",
 };
 
-// Helper functions for URL encoding/decoding of state (Handling Persian characters)
 const encodeState = (state: ProjectInputs): string => {
   try {
     const json = JSON.stringify(state);
@@ -80,7 +120,6 @@ const decodeState = (encoded: string): Partial<ProjectInputs> | null => {
 };
 
 const App: React.FC = () => {
-  // Initialize state from URL if present, otherwise use defaults
   const [inputs, setInputs] = useState<ProjectInputs>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -88,7 +127,25 @@ const App: React.FC = () => {
       if (dataParam) {
         const decoded = decodeState(dataParam);
         if (decoded) {
-          return { ...INITIAL_INPUTS, ...decoded };
+          const mergedInputs = { ...INITIAL_INPUTS, ...decoded };
+          // For backward compatibility with old shared links
+          if (('totalArea' in decoded) && !('netResidentialArea' in decoded)) {
+              mergedInputs.netResidentialArea = (decoded as any).totalArea - ((decoded as any).commercialArea || 0);
+          }
+          if (('commercialArea' in decoded) && !('netCommercialArea' in decoded)) {
+              mergedInputs.netCommercialArea = (decoded as any).commercialArea;
+          }
+
+          if (decoded.constructionPhases) {
+              mergedInputs.constructionPhases = decoded.constructionPhases;
+          }
+          if (decoded.unitMix) {
+            mergedInputs.unitMix = decoded.unitMix;
+          }
+           if (decoded.installments) {
+            mergedInputs.installments = decoded.installments;
+          }
+          return mergedInputs;
         }
       }
     }
@@ -98,17 +155,40 @@ const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.DASHBOARD);
   const [proposalContent, setProposalContent] = useState<ProposalContent>(INITIAL_CONTENT);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSuggesting, setIsSuggesting] = useState(false);
 
   const handleGenerateProposal = async () => {
     setIsGenerating(true);
+    setViewMode(ViewMode.PROPOSAL);
+    setProposalContent({
+      ...INITIAL_CONTENT,
+      executiveSummary: "در حال تولید تحلیل متنی و ساخت تصویر مفهومی توسط هوش مصنوعی...",
+      conceptualImage: proposalContent.conceptualImage, // Keep old image while generating
+    });
     try {
       const newContent = await generateProposalContent(inputs);
       setProposalContent(newContent);
-      setViewMode(ViewMode.PROPOSAL);
     } catch (e) {
       alert("خطا در ارتباط با هوش مصنوعی");
+      setProposalContent(INITIAL_CONTENT);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleSuggestPhases = async () => {
+    setIsSuggesting(true);
+    try {
+        const suggestedPhases = await suggestConstructionPhases(inputs);
+        if (suggestedPhases.length > 0) {
+            setInputs(prev => ({...prev, constructionPhases: suggestedPhases}));
+        } else {
+            alert("هوش مصنوعی نتوانست فازبندی مناسبی پیشنهاد دهد. لطفا مجددا تلاش کنید.");
+        }
+    } catch(e) {
+        alert("خطا در دریافت پیشنهاد فازبندی از هوش مصنوعی.");
+    } finally {
+        setIsSuggesting(false);
     }
   };
 
@@ -117,71 +197,49 @@ const App: React.FC = () => {
     const url = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
     
     navigator.clipboard.writeText(url).then(() => {
-      alert('لینک اختصاصی این پروژه کپی شد!\nمی‌توانید آن را برای دیگران ارسال کنید تا دقیقاً همین تنظیمات را مشاهده کنند.');
+      alert('لینک کپی شد!');
     }).catch(err => {
-      console.error('Failed to copy: ', err);
-      prompt("لطفا لینک زیر را کپی کنید:", url);
+      prompt("لینک:", url);
     });
   };
 
   return (
     <div className="flex h-screen bg-gray-50 flex-col md:flex-row overflow-hidden">
-      
-      {/* Sidebar Controls - Right Side */}
       <InputSidebar 
         inputs={inputs} 
         setInputs={setInputs} 
         onGenerate={handleGenerateProposal}
         isGenerating={isGenerating}
+        onSuggestPhases={handleSuggestPhases}
+        isSuggesting={isSuggesting}
       />
 
-      {/* Main Content - Left Side */}
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-        
-        {/* Top Navbar */}
         <header className="bg-white border-b border-gray-200 py-3 px-6 flex justify-between items-center shadow-sm shrink-0 z-20">
           <div className="flex items-center gap-3">
-             <div className="w-8 h-8 bg-akam-600 rounded-lg flex items-center justify-center text-white font-bold overflow-hidden">
+             <div className="w-10 h-10 bg-akam-600 rounded-lg flex items-center justify-center text-white font-bold overflow-hidden shadow-md">
                {inputs.companyLogo ? (
                  <img src={inputs.companyLogo} alt="Logo" className="w-full h-full object-cover" />
-               ) : "A"}
+               ) : <span className="text-xl">آ</span>}
              </div>
              <div>
-               <h1 className="text-sm font-bold text-gray-800">داشبورد مدیریت پروژه {inputs.projectName}</h1>
-               <p className="text-xs text-gray-500">شرکت تعاونی عمرانی نوین ساز ابنیه آکام</p>
+               <h1 className="text-sm font-bold text-gray-800">سامانه مدیریت پروژه {inputs.projectName}</h1>
+               <p className="text-[10px] text-gray-500">شرکت تعاونی عمرانی نوین ساز ابنیه آکام</p>
              </div>
           </div>
           
           <div className="flex items-center gap-3">
-            <button
-              onClick={handleShare}
-              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-akam-600 transition-colors"
-              title="اشتراک‌گذاری لینک پروژه"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-              </svg>
-              <span className="hidden sm:inline">اشتراک‌گذاری</span>
+            <button onClick={handleShare} className="hidden sm:flex items-center gap-2 px-3 py-2 text-xs text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-akam-600 transition-colors">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+              اشتراک‌گذاری
             </button>
-
             <div className="flex bg-gray-100 p-1 rounded-lg">
-              <button 
-                onClick={() => setViewMode(ViewMode.DASHBOARD)}
-                className={`px-4 py-2 text-sm rounded-md transition-all ${viewMode === ViewMode.DASHBOARD ? 'bg-white shadow text-akam-700 font-bold' : 'text-gray-500 hover:text-gray-700'}`}
-              >
-                داشبورد و تحلیل
-              </button>
-              <button 
-                onClick={() => setViewMode(ViewMode.PROPOSAL)}
-                className={`px-4 py-2 text-sm rounded-md transition-all ${viewMode === ViewMode.PROPOSAL ? 'bg-white shadow text-akam-700 font-bold' : 'text-gray-500 hover:text-gray-700'}`}
-              >
-                پیش‌نمایش پروپوزال
-              </button>
+              <button onClick={() => setViewMode(ViewMode.DASHBOARD)} className={`px-4 py-2 text-xs rounded-md transition-all ${viewMode === ViewMode.DASHBOARD ? 'bg-white shadow text-akam-700 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>داشبورد</button>
+              <button onClick={() => setViewMode(ViewMode.PROPOSAL)} className={`px-4 py-2 text-xs rounded-md transition-all ${viewMode === ViewMode.PROPOSAL ? 'bg-white shadow text-akam-700 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>پروپوزال</button>
             </div>
           </div>
         </header>
 
-        {/* Scrollable Content Area */}
         <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50 scroll-smooth">
           {viewMode === ViewMode.DASHBOARD ? (
             <Dashboard inputs={inputs} />
@@ -189,7 +247,6 @@ const App: React.FC = () => {
             <ProposalView inputs={inputs} content={proposalContent} />
           )}
         </main>
-
       </div>
     </div>
   );

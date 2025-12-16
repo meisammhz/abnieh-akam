@@ -1,188 +1,192 @@
 import React from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts';
-import { ProjectInputs } from '../types';
-import { toPersianDigits } from '../utils';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, RadialBarChart, RadialBar, PolarAngleAxis, BarChart, Bar } from 'recharts';
+import { ProjectInputs, UnitMix } from '../types';
+import { toPersianDigits, formatCurrency } from '../utils';
 
 interface Props {
   inputs: ProjectInputs;
 }
 
-const COLORS = ['#16a34a', '#fbbf24', '#3b82f6', '#ef4444'];
+const COLORS = ['#22c55e', '#3b82f6', '#f97316', '#ef4444'];
 
-export const ProfitChart: React.FC<Props> = ({ inputs }) => {
-  // Simulate cash flow and multiple scenarios over 42 months
-  const data = [];
-  let cumulativeCost = 0;
-  
-  const totalLandCost = (inputs.totalArea / 10) * inputs.unitSharePrice;
-  const totalConstructionCost = inputs.totalArea * inputs.constructionCostPerMeter;
-  
-  // Growth factors from inputs (monthly rate approximation)
-  const monthlyOptimisticRate = (inputs.optimisticGrowth / 100) / 12;
-  const monthlyPessimisticRate = (inputs.pessimisticGrowth / 100) / 12;
-  const monthlyRealisticRate = ((inputs.optimisticGrowth + inputs.pessimisticGrowth) / 200) / 12;
-
-  for (let i = 0; i <= 42; i+=6) {
-    let costChunk = 0;
-    if (i === 0) costChunk = totalLandCost * 0.5; // Down payment
-    else if (i <= 12) costChunk = (totalLandCost * 0.5) / 2; // Installments
-    else costChunk = (totalConstructionCost / 30) * 6; // Construction
-
-    cumulativeCost += costChunk;
-    
-    // Simulate Value Growth
-    // We start with a base value that is slightly higher than cost (margin)
-    // Note: In real world, market value of pre-sale grows.
-    const baseValue = (inputs.totalArea / 10 * inputs.unitSharePrice) + (inputs.totalArea * inputs.constructionCostPerMeter); 
-    const initialMargin = 1.15; // 15% initial margin logic
-    const startVal = baseValue * initialMargin;
-
-    // We scale the starting value for the graph to look realistic relative to cumulative cost
-    // For graphing purposes, we assume 'Value' tracks with cost initially then diverges
-    const currentBaseValue = Math.max(cumulativeCost * 1.1, (startVal * (i/42)));
-
-    // Calculate different scenarios
-    const valPessimistic = currentBaseValue * Math.pow(1 + monthlyPessimisticRate, i);
-    const valRealistic = currentBaseValue * Math.pow(1 + monthlyRealisticRate, i);
-    const valOptimistic = currentBaseValue * Math.pow(1 + monthlyOptimisticRate, i);
-
-    data.push({
-      month: `ماه ${toPersianDigits(i)}`,
-      investment: cumulativeCost / 1000000000, // Billion Tomans
-      realistic: valRealistic / 1000000000,
-      optimistic: valOptimistic / 1000000000,
-      pessimistic: valPessimistic / 1000000000,
-    });
+const CustomPieTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0];
+    return (
+      <div className="bg-white/95 backdrop-blur-sm px-4 py-3 rounded-xl shadow-lg border border-gray-100 text-xs min-w-[140px]">
+         <div className="flex items-center gap-2 mb-2 justify-center">
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: data.payload.fill || data.fill }}></span>
+            <span className="font-bold text-gray-700">{data.name}</span>
+         </div>
+         <div className="text-center font-bold text-gray-900 dir-ltr bg-gray-50 p-1 rounded border border-gray-50">
+           {toPersianDigits(data.value.toLocaleString())}
+           {data.unit === 'toman' ? ' تومان' : ' متر مربع'}
+         </div>
+      </div>
+    );
   }
-
-  return (
-    <div className="h-64 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-          <defs>
-            <linearGradient id="colorOptimistic" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-            </linearGradient>
-            <linearGradient id="colorRealistic" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.5}/>
-              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-            </linearGradient>
-          </defs>
-          <XAxis dataKey="month" tick={{fontFamily: 'Vazirmatn', fontSize: 10}} />
-          <YAxis tickFormatter={(val) => toPersianDigits(val)} tick={{fontFamily: 'Vazirmatn', fontSize: 10}} />
-          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-          <Tooltip 
-            formatter={(val: number, name: string) => {
-                let label = '';
-                if(name === 'optimistic') label = 'سناریو خوش‌بینانه';
-                if(name === 'realistic') label = 'سناریو واقع‌بینانه';
-                if(name === 'pessimistic') label = 'سناریو بدبینانه';
-                if(name === 'investment') label = 'هزینه تجمعی';
-                return [toPersianDigits(val.toFixed(1)) + ' میلیارد', label];
-            }}
-            contentStyle={{fontFamily: 'Vazirmatn', direction: 'rtl'}}
-          />
-          {/* We stack areas to create the 'range' effect implies Optimistic is the top bound */}
-          <Area type="monotone" dataKey="optimistic" stroke="#10b981" strokeDasharray="5 5" fill="url(#colorOptimistic)" name="optimistic" />
-          <Area type="monotone" dataKey="realistic" stroke="#3b82f6" fillOpacity={1} fill="url(#colorRealistic)" name="realistic" />
-          <Area type="monotone" dataKey="pessimistic" stroke="#ef4444" strokeWidth={1} fillOpacity={0} name="pessimistic" />
-          <Area type="monotone" dataKey="investment" stroke="#f59e0b" strokeWidth={2} fill="none" name="investment" />
-          <Legend wrapperStyle={{fontFamily: 'Vazirmatn', fontSize: '10px'}} />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
-  );
+  return null;
 };
 
-export const LandUseChart: React.FC<Props> = ({ inputs }) => {
+export const ProgressDonutChart: React.FC<{ physical: number; time: number }> = ({ physical, time }) => {
   const data = [
-    { name: 'بنای مفید مسکونی', value: inputs.totalArea },
-    { name: 'بنای تجاری', value: inputs.commercialArea },
-    { name: 'مشاعات و امکانات', value: inputs.totalArea * 0.35 }, // Estimated common areas
+    { name: 'پیشرفت زمانی', value: time, fill: '#e5e7eb' },
+    { name: 'پیشرفت فیزیکی', value: physical, fill: '#16a34a' },
   ];
 
   return (
-     <div className="h-64 w-full">
+    <ResponsiveContainer width="100%" height="100%">
+      <PieChart>
+        <Tooltip content={({ active, payload }) => {
+             if (active && payload && payload.length) {
+                const data = payload[0];
+                return (
+                 <div className="bg-white/95 backdrop-blur-sm px-3 py-2 rounded-xl shadow-lg border border-gray-100 text-xs">
+                     <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: data.payload.fill }}></span>
+                        <span className="font-medium text-gray-600">{data.name}: </span>
+                        <span className="font-bold text-gray-800">{toPersianDigits(Math.round(data.value as number))}%</span>
+                     </div>
+                 </div>
+                );
+             }
+             return null;
+        }} />
+        <Pie
+          data={data}
+          cx="50%"
+          cy="50%"
+          startAngle={90}
+          endAngle={-270}
+          innerRadius="60%"
+          outerRadius="80%"
+          paddingAngle={0}
+          dataKey="value"
+          stroke="none"
+        >
+           {/* FIX: The 'cornerRadius' prop is not valid on a <Cell> component. It has been removed to fix the compilation error. */}
+           <Cell key={`cell-0`} fill={data[0].fill} />
+           <Cell key={`cell-1`} fill={data[1].fill} />
+        </Pie>
+         <text x="50%" y="45%" textAnchor="middle" dominantBaseline="middle" className="text-2xl font-bold fill-gray-800">
+            {toPersianDigits(Math.round(physical))}%
+        </text>
+        <text x="50%" y="60%" textAnchor="middle" dominantBaseline="middle" className="text-xs font-medium fill-gray-500">
+            پیشرفت فیزیکی
+        </text>
+      </PieChart>
+    </ResponsiveContainer>
+  );
+};
+
+export const CostBreakdownChart: React.FC<{ landCost: number; constructionCost: number }> = ({ landCost, constructionCost }) => {
+  const data = [
+    { name: 'زمین و تراکم', value: landCost, unit: 'toman' },
+    { name: 'ساخت (پایه)', value: constructionCost, unit: 'toman' },
+  ];
+  const COLORS = ['#fb923c', '#60a5fa'];
+  
+  return (
+    <ResponsiveContainer width="100%" height="100%" minHeight={180}>
+      <PieChart>
+        <Pie
+          data={data}
+          dataKey="value"
+          nameKey="name"
+          cx="50%"
+          cy="50%"
+          outerRadius={80}
+          innerRadius={50}
+          paddingAngle={5}
+        >
+          {data.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          ))}
+        </Pie>
+        <Tooltip content={<CustomPieTooltip />} />
+        <Legend wrapperStyle={{fontFamily: 'Vazirmatn', fontSize: '12px', marginTop: '10px'}} iconType="circle" />
+      </PieChart>
+    </ResponsiveContainer>
+  );
+};
+
+
+export const LandUseChart: React.FC<Props> = ({ inputs }) => {
+  // FIX: Updated component to use correct properties from ProjectInputs type.
+  // Replaced `totalArea` with `netResidentialArea` and `commercialArea` with `netCommercialArea`.
+  // Calculated common/service area accurately from `grossTotalArea`.
+  const commonAndServiceArea = inputs.grossTotalArea - inputs.netResidentialArea - inputs.netCommercialArea;
+  const data = [
+    { name: 'بنای مفید مسکونی', value: inputs.netResidentialArea, unit: 'm2' },
+    { name: 'بنای تجاری', value: inputs.netCommercialArea, unit: 'm2' },
+    { name: 'مشاعات و امکانات', value: commonAndServiceArea, unit: 'm2' },
+  ];
+   const COLORS = ['#22c55e', '#f97316', '#8b5cf6'];
+
+
+  return (
+     <div className="h-48 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           <Pie
             data={data}
             cx="50%"
             cy="50%"
-            innerRadius={60}
-            outerRadius={80}
+            innerRadius={50}
+            outerRadius={70}
             paddingAngle={5}
             dataKey="value"
           >
             {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
             ))}
           </Pie>
-          <Tooltip formatter={(val: number) => toPersianDigits(val.toLocaleString()) + ' متر'} contentStyle={{fontFamily: 'Vazirmatn', direction: 'rtl'}} />
-          <Legend wrapperStyle={{fontFamily: 'Vazirmatn', fontSize: '12px'}} />
+          <Tooltip content={<CustomPieTooltip />} />
+          <Legend wrapperStyle={{fontFamily: 'Vazirmatn', fontSize: '12px'}} iconType="circle" />
         </PieChart>
       </ResponsiveContainer>
      </div>
   );
 };
 
-export const CashFlowChart: React.FC<Props> = ({ inputs }) => {
-  const data = [];
-  const totalShares = inputs.totalArea / 10;
-  const addFee = inputs.additionalFee || 50000000;
-  
-  // Phase 1: Purchase (Month 0)
-  const initialInflowPerShare = (inputs.unitSharePrice * 0.5) + addFee;
-  
-  // Phase 1 End/Phase 2 Start (Month 12)
-  const secondaryInflowPerShare = inputs.unitSharePrice * 0.5;
 
-  // Construction (Month 13 to 42 - 30 months)
-  const totalConstructionCost = inputs.totalArea * inputs.constructionCostPerMeter;
-  const monthlyConstructionCollection = totalConstructionCost / 30;
-
-  for (let i = 0; i <= inputs.durationMonths; i++) {
-    let inflow = 0;
-    let outflow = 0;
-
-    if (i === 0) {
-      inflow += totalShares * initialInflowPerShare;
-      outflow += (totalShares * initialInflowPerShare) * 0.9; // Land payment
-    } else if (i === 12) {
-      inflow += totalShares * secondaryInflowPerShare;
-      outflow += (totalShares * secondaryInflowPerShare) * 0.8; // Settlements
-    } else if (i > 12) {
-      inflow += monthlyConstructionCollection;
-      outflow += monthlyConstructionCollection * 0.95; // Construction cost
-    } else {
-      outflow += 1000000000; // Low overhead for months 1-11
-    }
-
-    data.push({
-      month: i,
-      inflow: inflow / 1000000000, 
-      outflow: outflow / 1000000000
-    });
-  }
-
+export const UnitDistributionChart: React.FC<{ data: UnitMix[] }> = ({ data }) => {
   return (
-    <div className="h-64 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="month" tick={{fontFamily: 'Vazirmatn', fontSize: 10}} />
-          <YAxis tickFormatter={(val) => toPersianDigits(val)} tick={{fontFamily: 'Vazirmatn', fontSize: 10}} label={{ value: 'میلیارد تومان', angle: -90, position: 'insideLeft', fontFamily: 'Vazirmatn', fontSize: 10 }}/>
-          <Tooltip 
-             formatter={(val: number) => [toPersianDigits(val.toFixed(1)) + ' میلیارد', '']}
-             contentStyle={{fontFamily: 'Vazirmatn', direction: 'rtl'}}
-             cursor={{fill: '#f3f4f6'}}
-          />
-          <Legend wrapperStyle={{fontFamily: 'Vazirmatn'}} />
-          <Bar dataKey="inflow" fill="#16a34a" name="ورودی (شارژ)" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="outflow" fill="#ef4444" name="خروجی (هزینه)" radius={[4, 4, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
+    <ResponsiveContainer width="100%" height="100%" minHeight={180}>
+      <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
+        <XAxis type="number" hide />
+        <YAxis 
+          type="category" 
+          dataKey="size" 
+          width={80} 
+          tickLine={false} 
+          axisLine={false} 
+          tick={{ fontFamily: 'Vazirmatn', fontSize: 12, fill: '#4b5563' }} 
+        />
+        <Tooltip 
+          cursor={{ fill: '#f9fafb' }}
+          content={({ active, payload }) => {
+             if (active && payload && payload.length) {
+                const data = payload[0];
+                return (
+                 <div className="bg-white/95 backdrop-blur-sm px-3 py-2 rounded-xl shadow-lg border border-gray-100 text-xs">
+                     <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-600">{data.payload.size}: </span>
+                        <span className="font-bold text-gray-800">{toPersianDigits(data.value)}% از واحدها</span>
+                     </div>
+                 </div>
+                );
+             }
+             return null;
+          }}
+        />
+        <Bar dataKey="percentage" barSize={20} radius={[0, 10, 10, 0]}>
+          {data.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
   );
 };
