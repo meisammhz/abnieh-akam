@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import InputSidebar from './components/InputSidebar';
 import Dashboard from './components/Dashboard';
 import ProposalView from './components/ProposalView';
+import PdfReport from './components/PdfReport';
+import PdfDashboard from './components/PdfDashboard';
+import { PDFViewer, PDFDownloadLink } from '@react-pdf/renderer';
 import { ProjectInputs, ProposalContent, ViewMode, AnalysisSection } from './types';
 import { generateProposalContent, suggestConstructionPhases } from './services/geminiService';
 
@@ -166,6 +169,8 @@ const App: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false); // State for sidebar visibility
+  const [showPdfPreview, setShowPdfPreview] = useState<boolean>(false); // State for PDF preview visibility
+  const [pdfMode, setPdfMode] = useState<'dashboard' | 'proposal'>('dashboard');
 
   const handleGenerateProposal = async () => {
     setIsGenerating(true);
@@ -265,14 +270,27 @@ const App: React.FC = () => {
               اشتراک‌گذاری
             </button>
             <div className="flex bg-gray-100 p-1 rounded-lg">
-              <button onClick={() => setViewMode(ViewMode.DASHBOARD)} className={`px-4 py-2 text-xs rounded-md transition-all ${viewMode === ViewMode.DASHBOARD ? 'bg-white shadow text-akam-700 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>داشبورد</button>
-              <button onClick={() => setViewMode(ViewMode.PROPOSAL)} className={`px-4 py-2 text-xs rounded-md transition-all ${viewMode === ViewMode.PROPOSAL ? 'bg-white shadow text-akam-700 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>پروپوزال</button>
+              <button onClick={() => { setViewMode(ViewMode.DASHBOARD); setShowPdfPreview(false); }} className={`px-4 py-2 text-xs rounded-md transition-all ${viewMode === ViewMode.DASHBOARD && !showPdfPreview ? 'bg-white shadow text-akam-700 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>داشبورد</button>
+              <button onClick={() => { setViewMode(ViewMode.PROPOSAL); setShowPdfPreview(false); }} className={`px-4 py-2 text-xs rounded-md transition-all ${viewMode === ViewMode.PROPOSAL && !showPdfPreview ? 'bg-white shadow text-akam-700 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>پروپوزال</button>
+              <button onClick={() => setShowPdfPreview(true)} className={`px-4 py-2 text-xs rounded-md transition-all ${showPdfPreview ? 'bg-white shadow text-akam-700 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>خروجی PDF</button>
+              <select value={pdfMode} onChange={(e) => setPdfMode(e.target.value as 'dashboard' | 'proposal')} className="ml-2 px-2 py-2 text-xs rounded-md border border-gray-200 bg-white text-gray-700">
+                <option value="dashboard">داشبورد</option>
+                <option value="proposal">پروپوزال</option>
+              </select>
             </div>
           </div>
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50 scroll-smooth">
-          {viewMode === ViewMode.DASHBOARD ? (
+          {showPdfPreview ? (
+            <PDFViewer style={{ width: '100%', height: '100vh' }}>
+              {pdfMode === 'dashboard' ? (
+                <PdfDashboard inputs={inputs} />
+              ) : (
+                <PdfReport inputs={inputs} content={proposalContent} />
+              )}
+            </PDFViewer>
+          ) : viewMode === ViewMode.DASHBOARD ? (
             <Dashboard inputs={inputs} />
           ) : (
             <ProposalView inputs={inputs} content={proposalContent} />
