@@ -192,13 +192,15 @@ const PdfReport: React.FC<PdfReportProps> = ({ inputs, content }) => {
 
         {/* Footer */}
         <View style={tw('text-center mt-10 pt-10 border-t border-gray-100')}>
-          <Text style={tw('text-xs text-gray-400 mb-1')}>تهیه شده توسط سامانه هوشمند مدیریت پروژه</Text>
+          <Text style={tw('text-xs text-gray-600 mb-2')}>تهیه شده توسط میثم میرمحمودزاده</Text>
           {inputs.companyLogo ? (
-            <Text>Company Logo Placeholder</Text> // Replace with actual image rendering if possible
+            <Image
+              src={inputs.companyLogo}
+              style={tw('mx-auto my-2')}
+            />
           ) : (
             <Text style={tw('font-bold text-gray-800 text-sm')}>شرکت تعاونی عمرانی نوین ساز ابنیه آکام</Text>
           )}
-          <Text style={tw('text-xs text-gray-400 mt-2')}>Powered by AI Project Management System • Confidential</Text>
         </View>
       </Page>
     </Document>

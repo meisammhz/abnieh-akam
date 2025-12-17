@@ -1,5 +1,5 @@
 import React from 'react';
-import { Document, Page, Text, View, Font } from '@react-pdf/renderer';
+import { Document, Page, Text, View, Font, Image } from '@react-pdf/renderer';
 import { createTw } from 'react-pdf-tailwind';
 import { ProjectInputs } from '../types';
 import { toPersianDigits, getCurrentShamsiDate, formatCurrency } from '../utils';
@@ -125,7 +125,10 @@ const PdfDashboard: React.FC<Props> = ({ inputs }) => {
         </Section>
 
         <View style={tw('text-center mt-10 pt-10 border-t border-gray-100')}>
-          <Text style={tw('text-xs text-gray-400')}>تهیه شده از داشبورد مدیریت پروژه • نارنجستان ۷</Text>
+          <Text style={tw('text-xs text-gray-600 mb-2')}>تهیه شده توسط میثم میرمحمودزاده</Text>
+          {inputs.companyLogo ? (
+            <Image src={inputs.companyLogo} style={tw('mx-auto my-2')} />
+          ) : null}
         </View>
       </Page>
     </Document>
