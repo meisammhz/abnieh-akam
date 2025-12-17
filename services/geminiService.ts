@@ -2,18 +2,38 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { ProjectInputs, ProposalContent, ConstructionPhase, AnalysisSection } from "../types";
 import { formatCurrency, toPersianDigits } from "../utils";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Initialize AI client lazily and compatibly with Vite env vars
+const apiKey: string = import.meta.env.VITE_GOOGLE_API_KEY || '';
+const getAI = (): GoogleGenAI | null => {
+  if (!apiKey) {
+    console.warn("GoogleGenAI API key is missing. Set VITE_GOOGLE_API_KEY in .env.local.");
+    return null;
+  }
+  try {
+    return new GoogleGenAI({ apiKey });
+  } catch (e) {
+    console.error("Failed to initialize GoogleGenAI:", e);
+    return null;
+  }
+};
 
 const generateFeatureImage = async (prompt: string): Promise<{ imageBase64: string; prompt: string }> => {
   try {
+    const ai = getAI();
+    if (!ai) return { imageBase64: '', prompt };
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: { parts: [{ text: prompt }] },
     });
     
-    for (const part of response.candidates[0].content.parts) {
-      if (part.inlineData) {
-        return { imageBase64: part.inlineData.data, prompt };
+    const firstCandidate = response.candidates?.[0];
+    const contentParts = firstCandidate?.content?.parts;
+
+    if (contentParts) {
+      for (const part of contentParts) {
+        if (part.inlineData?.data && typeof part.inlineData.data === 'string') {
+          return { imageBase64: part.inlineData.data, prompt };
+        }
       }
     }
     return { imageBase64: '', prompt };
@@ -58,6 +78,8 @@ export const suggestConstructionPhases = async (
   `;
 
   try {
+    const ai = getAI();
+    if (!ai) return [];
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,
@@ -147,6 +169,22 @@ export const generateProposalContent = async (inputs: ProjectInputs): Promise<Pr
   `;
   
   try {
+    const ai = getAI();
+    if (!ai) {
+      console.warn("GoogleGenAI unavailable. Returning placeholder proposal content.");
+      return {
+        executiveSummary: "برای مشاهده تحلیل جامع، لطفاً کلید API را تنظیم کنید و دوباره تلاش کنید.",
+        architecturalDeepDive: "اطلاعات در دسترس نیست.",
+        locationAndAccessAnalysis: "اطلاعات در دسترس نیست.",
+        financialModelAndProfitability: "اطلاعات در دسترس نیست.",
+        investorValueProposition: "اطلاعات در دسترس نیست.",
+        riskAndMitigation: "اطلاعات در دسترس نیست.",
+        conceptualImage: '',
+        conceptualImagePrompt: 'کلید API تنظیم نشده است.',
+        investorAnalysis: EMPTY_ANALYSIS_SECTION,
+        cooperativeAnalysis: EMPTY_ANALYSIS_SECTION,
+      };
+    }
     const mainConceptualPrompt = `Photorealistic architectural rendering of a modern luxury residential complex named '${inputs.projectName}'. 
       The structure consists of ${inputs.blocks} towers, each with ${inputs.floors} floors. 
       The facade is a '${inputs.facade}'.
