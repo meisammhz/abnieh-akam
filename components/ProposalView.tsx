@@ -9,13 +9,13 @@ interface Props {
 
 const Section: React.FC<{ title: string; icon: React.ReactElement; children: React.ReactNode }> = ({ title, icon, children }) => (
     <section className="break-inside-avoid-page">
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-4 mb-4">
             <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
                 {icon}
             </div>
-            <h3 className="text-2xl font-bold text-gray-800">{title}</h3>
+            <h3 className="text-xl font-bold text-gray-800">{title}</h3>
         </div>
-        <div className="prose prose-lg max-w-none text-justify text-gray-700 leading-9">
+        <div className="prose prose-sm max-w-none text-justify text-gray-700 leading-6">
             {children}
         </div>
     </section>
@@ -111,28 +111,28 @@ const ProposalView: React.FC<Props> = ({ inputs, content }) => {
                 <table className="w-full text-sm">
                     <tbody>
                         <tr className="border-b border-gray-100">
-                            <td className="p-3 text-gray-600">مساحت زمین</td>
-                            <td className="p-3 font-mono text-left font-bold">{toPersianDigits(inputs.landArea.toLocaleString())} م²</td>
+                            <td className="p-2 text-gray-600 text-xs">مساحت زمین</td>
+                            <td className="p-2 font-mono text-left font-bold text-gray-700 text-sm">{toPersianDigits(inputs.landArea.toLocaleString())} م²</td>
                         </tr>
                         <tr className="border-b border-gray-100">
-                            <td className="p-3 text-gray-600">مساحت کل پارکینگ‌ها ({toPersianDigits(inputs.undergroundFloors)} طبقه با اشغال {toPersianDigits(inputs.parkingOccupancyPercentage)}٪)</td>
-                            <td className="p-3 font-mono text-left font-bold text-gray-700">{toPersianDigits(Math.round(totalParkingArea).toLocaleString())} م²</td>
+                            <td className="p-2 text-gray-600 text-xs">مساحت کل پارکینگ‌ها ({toPersianDigits(inputs.undergroundFloors)} طبقه با اشغال {toPersianDigits(inputs.parkingOccupancyPercentage)}٪)</td>
+                            <td className="p-2 font-mono text-left font-bold text-gray-700 text-sm">{toPersianDigits(Math.round(totalParkingArea).toLocaleString())} م²</td>
                         </tr>
                         <tr className="border-b border-gray-100">
-                            <td className="p-3 text-gray-600">مساحت طبقه همکف (با اشغال {toPersianDigits(inputs.groundFloorOccupancyPercentage)}٪)</td>
-                            <td className="p-3 font-mono text-left font-bold text-gray-700">{toPersianDigits(Math.round(groundFloorArea).toLocaleString())} م²</td>
+                            <td className="p-2 text-gray-600 text-xs">مساحت طبقه همکف (با اشغال {toPersianDigits(inputs.groundFloorOccupancyPercentage)}٪)</td>
+                            <td className="p-2 font-mono text-left font-bold text-gray-700 text-sm">{toPersianDigits(Math.round(groundFloorArea).toLocaleString())} م²</td>
                         </tr>
                         <tr className="border-b border-gray-100">
-                            <td className="p-3 text-gray-600">مساحت کل طبقات مسکونی ({toPersianDigits(inputs.floors)} طبقه با اشغال {toPersianDigits(inputs.residentialOccupancyPercentage)}٪)</td>
-                            <td className="p-3 font-mono text-left font-bold text-gray-700">{toPersianDigits(Math.round(totalResidentialArea).toLocaleString())} م²</td>
+                            <td className="p-2 text-gray-600 text-xs">مساحت کل طبقات مسکونی ({toPersianDigits(inputs.floors)} طبقه با اشغال {toPersianDigits(inputs.residentialOccupancyPercentage)}٪)</td>
+                            <td className="p-2 font-mono text-left font-bold text-gray-700 text-sm">{toPersianDigits(Math.round(totalResidentialArea).toLocaleString())} م²</td>
                         </tr>
                         <tr className="bg-gray-50 font-bold">
-                            <td className="p-3 text-gray-800">تراکم کل محاسبه شده (بر اساس سطح اشغال)</td>
-                            <td className="p-3 font-mono text-left text-blue-600">{toPersianDigits(Math.round(calculatedGrossArea).toLocaleString())} م²</td>
+                            <td className="p-2 text-gray-800 text-sm">تراکم کل محاسبه شده (بر اساس سطح اشغال)</td>
+                            <td className="p-2 font-mono text-left text-blue-600 text-sm">{toPersianDigits(Math.round(calculatedGrossArea).toLocaleString())} م²</td>
                         </tr>
                         <tr>
-                            <td className="p-3 text-gray-800">تراکم کل اعلامی پروژه</td>
-                            <td className="p-3 font-mono text-left text-blue-600">{toPersianDigits(inputs.grossTotalArea.toLocaleString())} م²</td>
+                            <td className="p-2 text-gray-800 text-sm">تراکم کل اعلامی پروژه</td>
+                            <td className="p-2 font-mono text-left text-blue-600 text-sm">{toPersianDigits(inputs.grossTotalArea.toLocaleString())} م²</td>
                         </tr>
                     </tbody>
                 </table>
@@ -175,22 +175,22 @@ const ProposalView: React.FC<Props> = ({ inputs, content }) => {
         <Section title="ارزش پیشنهادی برای سرمایه‌گذار" icon={<svg className="w-6 h-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>}>
             <p>{content.investorValueProposition}</p>
              <div className="bg-slate-900 text-white rounded-xl p-8 my-8 text-center not-prose">
-               <h4 className="text-xl font-bold mb-2">شکاف ارزشی: فرصت طلایی سرمایه‌گذاری</h4>
-               <p className="text-slate-400 text-sm mb-6">مقایسه هزینه تمام شده (با بالاسری) با قیمت روز بازار (هر متر مربع)</p>
+               <h4 className="text-lg font-bold mb-2">شکاف ارزشی: فرصت طلایی سرمایه‌گذاری</h4>
+               <p className="text-slate-400 text-xs mb-6">مقایسه هزینه تمام شده (با بالاسری) با قیمت روز بازار (هر متر مربع)</p>
                <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
                  <div className="flex-1">
-                   <p className="text-lg text-slate-300">قیمت بازار</p>
-                   <p className="text-4xl font-bold my-1 text-blue-400">{formatCurrency(inputs.marketPricePerMeter)}</p>
+                   <p className="text-base text-slate-300">قیمت بازار</p>
+                   <p className="text-3xl font-bold my-1 text-blue-400">{formatCurrency(inputs.marketPricePerMeter)}</p>
                  </div>
-                 <div className="text-4xl font-thin text-slate-500">-</div>
+                 <div className="text-3xl font-thin text-slate-500">-</div>
                  <div className="flex-1">
-                   <p className="text-lg text-slate-300">قیمت تمام شده ما</p>
-                   <p className="text-4xl font-bold my-1 text-amber-400">{formatCurrency(totalCostWithOverheadPerMeter)}</p>
+                   <p className="text-base text-slate-300">قیمت تمام شده ما</p>
+                   <p className="text-3xl font-bold my-1 text-amber-400">{formatCurrency(totalCostWithOverheadPerMeter)}</p>
                  </div>
-                 <div className="text-4xl font-thin text-slate-500">=</div>
+                 <div className="text-3xl font-thin text-slate-500">=</div>
                  <div className="flex-1 bg-slate-800 p-4 rounded-lg border border-slate-700">
-                   <p className="text-lg text-emerald-400 font-bold">سود اولیه شما</p>
-                   <p className="text-4xl font-extrabold my-1 text-white">{formatCurrency(initialValueGapPerMeter)}</p>
+                   <p className="text-base text-emerald-400 font-bold">سود اولیه شما</p>
+                   <p className="text-3xl font-extrabold my-1 text-white">{formatCurrency(initialValueGapPerMeter)}</p>
                  </div>
                </div>
             </div>

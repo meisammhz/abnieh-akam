@@ -11,35 +11,35 @@ interface Props {
 }
 
 const KpiCard: React.FC<{ title: string; value: string; subValue?: string; icon: React.ReactElement; color: string }> = ({ title, value, subValue, icon, color }) => (
-    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+    <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
         <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${color}`}>
             {icon}
         </div>
         <div>
-            <h4 className="text-sm font-medium text-gray-500">{title}</h4>
-            <p className="text-xl font-bold text-gray-800">{value}</p>
+            <h4 className="text-xs font-medium text-gray-500">{title}</h4>
+            <p className="text-lg font-bold text-gray-800">{value}</p>
             {subValue && <p className="text-xs text-gray-400">{subValue}</p>}
         </div>
     </div>
 );
 
 const InfoCard: React.FC<{ title: string; icon: React.ReactElement; children: React.ReactNode }> = ({ title, icon, children }) => (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-full">
-        <h3 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+    <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 h-full">
+        <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
             {icon}
             {title}
         </h3>
-        <div className="space-y-3 text-sm">
+        <div className="space-y-2 text-xs">
             {children}
         </div>
     </div>
 );
 
 const InfoCardRow: React.FC<{ label: string; value: string; subValue?: string }> = ({ label, value, subValue }) => (
-    <div className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
-        <span className="text-gray-500">{label}</span>
+    <div className="flex justify-between items-center py-1 border-b border-gray-100 last:border-b-0">
+        <span className="text-gray-500 text-xs">{label}</span>
         <div className="text-right">
-          <span className="font-bold text-gray-700">{value}</span>
+          <span className="font-semibold text-gray-700 text-sm">{value}</span>
           {subValue && <span className="text-xs text-gray-400 block">{subValue}</span>}
         </div>
     </div>
@@ -202,37 +202,37 @@ const Dashboard: React.FC<Props> = ({ inputs }) => {
          <div className="overflow-x-auto">
             <table className="w-full text-right">
               <thead>
-                <tr className="bg-slate-900/50 text-slate-400 text-sm">
-                  <th className="p-4 font-normal">شاخص‌های مالی (هر سهم {toPersianDigits(inputs.unitShareSize)} متری)</th>
-                  <th className="p-4 font-normal text-rose-300">سناریو بدبینانه</th>
-                  <th className="p-4 font-normal text-blue-300 bg-white/5">سناریو محتمل</th>
-                  <th className="p-4 font-normal text-emerald-300">سناریو خوش‌بینانه</th>
+                <tr className="bg-slate-900/50 text-slate-400 text-xs">
+                  <th className="p-3 font-normal">شاخص‌های مالی (هر سهم {toPersianDigits(inputs.unitShareSize)} متری)</th>
+                  <th className="p-3 font-normal text-rose-300">سناریو بدبینانه</th>
+                  <th className="p-3 font-normal text-blue-300 bg-white/5">سناریو محتمل</th>
+                  <th className="p-3 font-normal text-emerald-300">سناریو خوش‌بینانه</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-700 text-sm">
+              <tbody className="divide-y divide-slate-700 text-xs">
                 <tr className="hover:bg-white/5">
-                  <td className="p-4 text-slate-300">قیمت تمام شده برای خریدار</td>
-                  <td className="p-4 font-mono text-slate-200">{formatCurrency(Math.round(pessimisticScenario.totalCostToBuyer))}</td>
-                  <td className="p-4 font-mono text-white font-bold bg-white/5">{formatCurrency(Math.round(realisticScenario.totalCostToBuyer))}</td>
-                  <td className="p-4 font-mono text-slate-200">{formatCurrency(Math.round(optimisticScenario.totalCostToBuyer))}</td>
+                  <td className="p-3 text-slate-300">قیمت تمام شده برای خریدار</td>
+                  <td className="p-3 font-mono text-slate-200">{formatCurrency(Math.round(pessimisticScenario.totalCostToBuyer))}</td>
+                  <td className="p-3 font-mono text-white font-bold bg-white/5">{formatCurrency(Math.round(realisticScenario.totalCostToBuyer))}</td>
+                  <td className="p-3 font-mono text-slate-200">{formatCurrency(Math.round(optimisticScenario.totalCostToBuyer))}</td>
                 </tr>
                  <tr className="hover:bg-white/5">
-                  <td className="p-4 text-slate-300">ارزش فروش سهم (زمان تحویل)</td>
-                  <td className="p-4 font-mono text-rose-300 font-bold">{formatCurrency(Math.round(pessimisticScenario.futureValueShare))}</td>
-                  <td className="p-4 font-mono text-blue-300 font-bold bg-white/5 text-lg">{formatCurrency(Math.round(realisticScenario.futureValueShare))}</td>
-                  <td className="p-4 font-mono text-emerald-300 font-bold">{formatCurrency(Math.round(optimisticScenario.futureValueShare))}</td>
+                  <td className="p-3 text-slate-300">ارزش فروش سهم (زمان تحویل)</td>
+                  <td className="p-3 font-mono text-rose-300 font-bold">{formatCurrency(Math.round(pessimisticScenario.futureValueShare))}</td>
+                  <td className="p-3 font-mono text-blue-300 font-bold bg-white/5 text-base">{formatCurrency(Math.round(realisticScenario.futureValueShare))}</td>
+                  <td className="p-3 font-mono text-emerald-300 font-bold">{formatCurrency(Math.round(optimisticScenario.futureValueShare))}</td>
                 </tr>
                 <tr className="hover:bg-white/5">
-                  <td className="p-4 text-slate-300">سود خالص خریدار</td>
-                  <td className="p-4 font-mono text-rose-400">+{formatCurrency(Math.round(pessimisticScenario.buyerProfit))}</td>
-                  <td className="p-4 font-mono text-blue-400 font-bold bg-white/5">+{formatCurrency(Math.round(realisticScenario.buyerProfit))}</td>
-                  <td className="p-4 font-mono text-emerald-400">+{formatCurrency(Math.round(optimisticScenario.buyerProfit))}</td>
+                  <td className="p-3 text-slate-300">سود خالص خریدار</td>
+                  <td className="p-3 font-mono text-rose-400">+{formatCurrency(Math.round(pessimisticScenario.buyerProfit))}</td>
+                  <td className="p-3 font-mono text-blue-400 font-bold bg-white/5">+{formatCurrency(Math.round(realisticScenario.buyerProfit))}</td>
+                  <td className="p-3 font-mono text-emerald-400">+{formatCurrency(Math.round(optimisticScenario.buyerProfit))}</td>
                 </tr>
                 <tr className="bg-slate-800/80">
-                  <td className="p-4 text-slate-300 border-t border-slate-700 font-bold">بازدهی سالانه (Annual ROI)</td>
-                  <td className="p-4 font-bold text-rose-400 border-t border-slate-700 dir-ltr text-right">{toPersianDigits(pessimisticScenario.annualRoi.toFixed(1))}٪</td>
-                  <td className="p-4 font-bold text-blue-400 bg-white/5 border-t border-slate-600 text-lg dir-ltr text-right">{toPersianDigits(realisticScenario.annualRoi.toFixed(1))}٪</td>
-                  <td className="p-4 font-bold text-emerald-400 border-t border-slate-700 dir-ltr text-right">{toPersianDigits(optimisticScenario.annualRoi.toFixed(1))}٪</td>
+                  <td className="p-3 text-slate-300 border-t border-slate-700 font-bold">بازدهی سالانه (Annual ROI)</td>
+                  <td className="p-3 font-bold text-rose-400 border-t border-slate-700 dir-ltr text-right">{toPersianDigits(pessimisticScenario.annualRoi.toFixed(1))}٪</td>
+                  <td className="p-3 font-bold text-blue-400 bg-white/5 border-t border-slate-600 text-base dir-ltr text-right">{toPersianDigits(realisticScenario.annualRoi.toFixed(1))}٪</td>
+                  <td className="p-3 font-bold text-emerald-400 border-t border-slate-700 dir-ltr text-right">{toPersianDigits(optimisticScenario.annualRoi.toFixed(1))}٪</td>
                 </tr>
               </tbody>
             </table>
