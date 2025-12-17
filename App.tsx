@@ -165,6 +165,7 @@ const App: React.FC = () => {
   const [proposalContent, setProposalContent] = useState<ProposalContent>(INITIAL_CONTENT);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false); // State for sidebar visibility
 
   const handleGenerateProposal = async () => {
     setIsGenerating(true);
@@ -214,16 +215,37 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-gray-50 flex-col md:flex-row overflow-hidden">
-      <InputSidebar 
-        inputs={inputs} 
-        setInputs={setInputs} 
-        onGenerate={handleGenerateProposal}
-        isGenerating={isGenerating}
-        onSuggestPhases={handleSuggestPhases}
-        isSuggesting={isSuggesting}
-      />
+      {/* Sidebar Toggle Button for small screens */}
+      <button
+        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-indigo-600 text-white rounded-full shadow-lg"
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+      >
+        {isSidebarOpen ? (
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        ) : (
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        )}
+      </button>
 
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
+      {/* Input Sidebar */}
+      <div className={`fixed inset-y-0 right-0 z-40 w-full md:static md:w-96 bg-white border-l border-gray-200 h-full overflow-y-auto p-5 shadow-xl shrink-0 text-sm scrollbar-thin scrollbar-thumb-gray-300 transform ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out`}>
+        <InputSidebar
+          inputs={inputs}
+          setInputs={setInputs}
+          onGenerate={handleGenerateProposal}
+          isGenerating={isGenerating}
+          onSuggestPhases={handleSuggestPhases}
+          isSuggesting={isSuggesting}
+        />
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
         <header className="bg-white border-b border-gray-200 py-3 px-6 flex justify-between items-center shadow-sm shrink-0 z-20">
           <div className="flex items-center gap-3">
              <div className="w-10 h-10 bg-akam-600 rounded-lg flex items-center justify-center text-white font-bold overflow-hidden shadow-md">
