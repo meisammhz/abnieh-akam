@@ -4,7 +4,7 @@ import Dashboard from './components/Dashboard';
 import ProposalView from './components/ProposalView';
 import PdfReport from './components/PdfReport';
 import PdfDashboard from './components/PdfDashboard';
-import { PDFViewer, PDFDownloadLink } from '@react-pdf/renderer';
+import { PDFViewer, PDFDownloadLink, BlobProvider } from '@react-pdf/renderer';
 import { ProjectInputs, ProposalContent, ViewMode, AnalysisSection } from './types';
 import { generateProposalContent, suggestConstructionPhases } from './services/geminiService';
 
@@ -171,6 +171,7 @@ const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false); // State for sidebar visibility
   const [showPdfPreview, setShowPdfPreview] = useState<boolean>(false); // State for PDF preview visibility
   const [pdfMode, setPdfMode] = useState<'dashboard' | 'proposal'>('dashboard');
+  const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   const handleGenerateProposal = async () => {
     setIsGenerating(true);
@@ -283,13 +284,67 @@ const App: React.FC = () => {
 
         <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50 scroll-smooth">
           {showPdfPreview ? (
-            <PDFViewer style={{ width: '100%', height: '100vh' }}>
-              {pdfMode === 'dashboard' ? (
-                <PdfDashboard inputs={inputs} />
-              ) : (
-                <PdfReport inputs={inputs} content={proposalContent} />
-              )}
-            </PDFViewer>
+            isMobile ? (
+              <div className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <PDFDownloadLink
+                    document={pdfMode === 'dashboard' ? <PdfDashboard inputs={inputs} /> : <PdfReport inputs={inputs} content={proposalContent} />}
+                    fileName={pdfMode === 'dashboard' ? `dashboard-${inputs.projectName}.pdf` : `proposal-${inputs.projectName}.pdf`}
+                  >
+                    {({ loading }) => (
+                      <button className="px-3 py-2 text-xs rounded-md bg-emerald-600 text-white">
+                        {loading ? 'در حال آماده‌سازی…' : 'دانلود PDF'}
+                      </button>
+                    )}
+                  </PDFDownloadLink>
+                  <BlobProvider document={pdfMode === 'dashboard' ? <PdfDashboard inputs={inputs} /> : <PdfReport inputs={inputs} content={proposalContent} />}
+                  >
+                    {({ url, blob, loading }) => (
+                      <>
+                        <button
+                          disabled={loading}
+                          onClick={() => url && window.open(url, '_blank')}
+                          className="px-3 py-2 text-xs rounded-md bg-blue-600 text-white disabled:opacity-50"
+                        >
+                          باز کردن
+                        </button>
+                        <button
+                          disabled={loading}
+                          onClick={async () => {
+                            try {
+                              if (blob && navigator.canShare && navigator.canShare({ files: [new File([blob], `${pdfMode}-${inputs.projectName}.pdf`, { type: 'application/pdf' })] })) {
+                                await navigator.share({
+                                  title: pdfMode === 'dashboard' ? `داشبورد پروژه ${inputs.projectName}` : `پروپوزال پروژه ${inputs.projectName}`,
+                                  files: [new File([blob], `${pdfMode}-${inputs.projectName}.pdf`, { type: 'application/pdf' })],
+                                });
+                              } else if (url) {
+                                window.open(url, '_blank');
+                              }
+                            } catch (e) {
+                              if (url) window.open(url, '_blank');
+                            }
+                          }}
+                          className="px-3 py-2 text-xs rounded-md bg-amber-600 text-white disabled:opacity-50"
+                        >
+                          اشتراک‌گذاری
+                        </button>
+                      </>
+                    )}
+                  </BlobProvider>
+                </div>
+                <div className="text-xs text-gray-500">
+                  در موبایل برخی مرورگرها نمایش مستقیم PDF محدود است؛ از دکمه‌های بالا برای دانلود، باز کردن یا اشتراک‌گذاری استفاده کنید.
+                </div>
+              </div>
+            ) : (
+              <PDFViewer style={{ width: '100%', height: '100vh' }}>
+                {pdfMode === 'dashboard' ? (
+                  <PdfDashboard inputs={inputs} />
+                ) : (
+                  <PdfReport inputs={inputs} content={proposalContent} />
+                )}
+              </PDFViewer>
+            )
           ) : viewMode === ViewMode.DASHBOARD ? (
             <Dashboard inputs={inputs} />
           ) : (
