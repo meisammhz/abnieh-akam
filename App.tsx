@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import InputSidebar from './components/InputSidebar';
 import Dashboard from './components/Dashboard';
 import ProposalView from './components/ProposalView';
-import { ProjectInputs, ProposalContent, ViewMode } from './types';
+import { ProjectInputs, ProposalContent, ViewMode, AnalysisSection } from './types';
 import { generateProposalContent, suggestConstructionPhases } from './services/geminiService';
 
 const INITIAL_INPUTS: ProjectInputs = {
@@ -13,6 +13,7 @@ const INITIAL_INPUTS: ProjectInputs = {
   // Areas & Dimensions
   landArea: 18500,
   parkingOccupancyPercentage: 80, 
+  groundFloorOccupancyPercentage: 60,
   residentialOccupancyPercentage: 40, 
   
   grossTotalArea: 55000,
@@ -88,6 +89,12 @@ const INITIAL_INPUTS: ProjectInputs = {
   electricalSystem: "سیستم برق هوشمند (BMS) با قابلیت کنترل از راه دور، کلید و پریز برند Schneider",
 };
 
+const EMPTY_ANALYSIS: AnalysisSection = {
+  text: "در انتظار تحلیل...",
+  image: "",
+  imagePrompt: "",
+};
+
 const INITIAL_CONTENT: ProposalContent = {
   executiveSummary: "برای مشاهده تحلیل جامع، لطفاً اطلاعات پروژه را در سایدبار تنظیم کرده و روی دکمه 'بروزرسانی پروپوزال' کلیک کنید.",
   architecturalDeepDive: "در انتظار تحلیل...",
@@ -97,6 +104,8 @@ const INITIAL_CONTENT: ProposalContent = {
   riskAndMitigation: "در انتظار تحلیل...",
   conceptualImage: "",
   conceptualImagePrompt: "",
+  investorAnalysis: EMPTY_ANALYSIS,
+  cooperativeAnalysis: EMPTY_ANALYSIS,
 };
 
 const encodeState = (state: ProjectInputs): string => {
@@ -162,7 +171,7 @@ const App: React.FC = () => {
     setViewMode(ViewMode.PROPOSAL);
     setProposalContent({
       ...INITIAL_CONTENT,
-      executiveSummary: "در حال تولید تحلیل متنی و ساخت تصویر مفهومی توسط هوش مصنوعی...",
+      executiveSummary: "در حال تولید تحلیل متنی و ساخت تصاویر مفهومی توسط هوش مصنوعی...",
       conceptualImage: proposalContent.conceptualImage, // Keep old image while generating
     });
     try {

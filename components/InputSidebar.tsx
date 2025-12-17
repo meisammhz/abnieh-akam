@@ -189,6 +189,25 @@ const InputSidebar: React.FC<Props> = ({ inputs, setInputs, onGenerate, isGenera
         <Accordion title="جزئیات متراژ و تراکم" icon={<svg className="w-4 h-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 0h-4m4 0l-5-5" /></svg>} defaultOpen>
             <div className="space-y-3">
                 <div>
+                    <label className="text-gray-500 text-xs block mb-1">مساحت زمین (متر مربع)</label>
+                    <input type="number" value={inputs.landArea} onChange={(e) => handleChange('landArea', Number(e.target.value))} className="w-full p-2 border rounded-lg bg-gray-50 ltr text-center text-gray-900 focus:border-gray-500 outline-none" />
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                    <div>
+                        <label className="text-gray-500 text-xs block mb-1">اشغال پارکینگ (٪)</label>
+                        <input type="number" value={inputs.parkingOccupancyPercentage} onChange={(e) => handleChange('parkingOccupancyPercentage', Number(e.target.value))} className="w-full p-2 border rounded-lg bg-gray-50 ltr text-center text-gray-900 focus:border-gray-500 outline-none" />
+                    </div>
+                    <div>
+                        <label className="text-gray-500 text-xs block mb-1">اشغال همکف (٪)</label>
+                        <input type="number" value={inputs.groundFloorOccupancyPercentage} onChange={(e) => handleChange('groundFloorOccupancyPercentage', Number(e.target.value))} className="w-full p-2 border rounded-lg bg-gray-50 ltr text-center text-gray-900 focus:border-gray-500 outline-none" />
+                    </div>
+                    <div>
+                        <label className="text-gray-500 text-xs block mb-1">اشغال مسکونی (٪)</label>
+                        <input type="number" value={inputs.residentialOccupancyPercentage} onChange={(e) => handleChange('residentialOccupancyPercentage', Number(e.target.value))} className="w-full p-2 border rounded-lg bg-gray-50 ltr text-center text-gray-900 focus:border-gray-500 outline-none" />
+                    </div>
+                </div>
+                <hr className="border-gray-100 !my-4" />
+                <div>
                     <label className="text-gray-500 text-xs block mb-1">تراکم کل (متر مربع)</label>
                     <input type="number" value={inputs.grossTotalArea} onChange={(e) => handleChange('grossTotalArea', Number(e.target.value))} className="w-full p-2 border rounded-lg bg-gray-50 ltr text-center text-gray-900 focus:border-gray-500 outline-none" />
                 </div>

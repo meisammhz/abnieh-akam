@@ -29,6 +29,33 @@ const ProposalView: React.FC<Props> = ({ inputs, content }) => {
   const totalCostWithOverheadPerMeter = totalBaseCostPerMeter * (1 + inputs.adminOverheadPercentage / 100);
   const initialValueGapPerMeter = inputs.marketPricePerMeter - totalCostWithOverheadPerMeter;
 
+  // Occupancy calculations for breakdown table
+  const totalParkingArea = inputs.landArea * (inputs.parkingOccupancyPercentage / 100) * inputs.undergroundFloors;
+  const groundFloorArea = inputs.landArea * (inputs.groundFloorOccupancyPercentage / 100) * 1;
+  const totalResidentialArea = inputs.landArea * (inputs.residentialOccupancyPercentage / 100) * inputs.floors;
+  const calculatedGrossArea = totalParkingArea + groundFloorArea + totalResidentialArea;
+  const areaDifference = calculatedGrossArea - inputs.grossTotalArea;
+  const differencePercentage = inputs.grossTotalArea > 0 ? Math.abs(areaDifference / inputs.grossTotalArea) * 100 : 0;
+  const isConsistent = differencePercentage < 5; // Allow up to 5% variance for rounding etc.
+
+  const renderAnalysisSection = (analysis: { text: string; image: string; }, imageCaption: string) => (
+    <>
+      <p>{analysis.text}</p>
+      {analysis.image ? (
+        <div className="bg-gray-800 rounded-xl overflow-hidden shadow-lg my-8">
+          <img src={`data:image/png;base64,${analysis.image}`} alt={imageCaption} className="w-full h-auto object-cover" />
+          <p className="text-center text-xs text-gray-400 p-3 bg-gray-900">
+            * {imageCaption}
+          </p>
+        </div>
+      ) : (
+        <div className="text-center p-8 bg-gray-100 rounded-lg my-8">
+            <p className="text-gray-500">تصویر مفهومی در حال پردازش است...</p>
+        </div>
+      )}
+    </>
+  );
+
   return (
     <div className="max-w-4xl mx-auto bg-white shadow-2xl my-8 min-h-screen print:shadow-none print:m-0">
       
@@ -76,8 +103,47 @@ const ProposalView: React.FC<Props> = ({ inputs, content }) => {
         
         <hr className="border-gray-100" />
         
-        <Section title="تحلیل عمیق معماری" icon={<svg className="w-6 h-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>}>
+        <Section title="تحلیل عمیق معماری و فنی" icon={<svg className="w-6 h-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>}>
             <p>{content.architecturalDeepDive}</p>
+
+            <div className="not-prose my-8 border border-gray-200 rounded-xl overflow-hidden">
+                <h4 className="text-base font-bold text-gray-800 p-4 bg-gray-50 border-b border-gray-200">راستی‌آزمایی تراکم ساختمانی</h4>
+                <table className="w-full text-sm">
+                    <tbody>
+                        <tr className="border-b border-gray-100">
+                            <td className="p-3 text-gray-600">مساحت زمین</td>
+                            <td className="p-3 font-mono text-left font-bold">{toPersianDigits(inputs.landArea.toLocaleString())} م²</td>
+                        </tr>
+                        <tr className="border-b border-gray-100">
+                            <td className="p-3 text-gray-600">مساحت کل پارکینگ‌ها ({toPersianDigits(inputs.undergroundFloors)} طبقه با اشغال {toPersianDigits(inputs.parkingOccupancyPercentage)}٪)</td>
+                            <td className="p-3 font-mono text-left font-bold text-gray-700">{toPersianDigits(Math.round(totalParkingArea).toLocaleString())} م²</td>
+                        </tr>
+                        <tr className="border-b border-gray-100">
+                            <td className="p-3 text-gray-600">مساحت طبقه همکف (با اشغال {toPersianDigits(inputs.groundFloorOccupancyPercentage)}٪)</td>
+                            <td className="p-3 font-mono text-left font-bold text-gray-700">{toPersianDigits(Math.round(groundFloorArea).toLocaleString())} م²</td>
+                        </tr>
+                        <tr className="border-b border-gray-100">
+                            <td className="p-3 text-gray-600">مساحت کل طبقات مسکونی ({toPersianDigits(inputs.floors)} طبقه با اشغال {toPersianDigits(inputs.residentialOccupancyPercentage)}٪)</td>
+                            <td className="p-3 font-mono text-left font-bold text-gray-700">{toPersianDigits(Math.round(totalResidentialArea).toLocaleString())} م²</td>
+                        </tr>
+                        <tr className="bg-gray-50 font-bold">
+                            <td className="p-3 text-gray-800">تراکم کل محاسبه شده (بر اساس سطح اشغال)</td>
+                            <td className="p-3 font-mono text-left text-blue-600">{toPersianDigits(Math.round(calculatedGrossArea).toLocaleString())} م²</td>
+                        </tr>
+                        <tr>
+                            <td className="p-3 text-gray-800">تراکم کل اعلامی پروژه</td>
+                            <td className="p-3 font-mono text-left text-blue-600">{toPersianDigits(inputs.grossTotalArea.toLocaleString())} م²</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div className={`p-3 text-center font-medium ${isConsistent ? 'bg-green-50 text-green-800' : 'bg-yellow-50 text-yellow-800'}`}>
+                    {isConsistent 
+                        ? `تطابق اعداد (با اختلاف جزئی ${toPersianDigits(differencePercentage.toFixed(1))}٪) نشان‌دهنده دقت بالای محاسبات و امکان‌سنجی پروژه است.`
+                        : `اختلاف ${toPersianDigits(differencePercentage.toFixed(1))}٪ بین تراکم اعلامی و محاسبه‌شده نیازمند بازبینی است.`
+                    }
+                </div>
+            </div>
+
             {content.conceptualImage ? (
                 <div className="bg-gray-800 rounded-xl overflow-hidden shadow-lg my-8">
                     <img src={`data:image/png;base64,${content.conceptualImage}`} alt="AI Generated Concept" className="w-full h-auto object-cover" />
@@ -130,6 +196,18 @@ const ProposalView: React.FC<Props> = ({ inputs, content }) => {
             </div>
         </Section>
         
+        <hr className="border-gray-100" />
+
+        <Section title="تحلیل سرمایه‌گذاری برای خریدار" icon={<svg className="w-6 h-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>}>
+            {renderAnalysisSection(content.investorAnalysis, "کانسپت هنری از امکانات رفاهی پروژه.")}
+        </Section>
+        
+        <hr className="border-gray-100" />
+        
+        <Section title="تحلیل استراتژیک برای تعاونی" icon={<svg className="w-6 h-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6H8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" /></svg>}>
+            {renderAnalysisSection(content.cooperativeAnalysis, "کانسپت هنری از موقعیت مکانی و سبک زندگی منطقه.")}
+        </Section>
+
         <hr className="border-gray-100" />
         
         <Section title="تحلیل ریسک و راهکارهای مدیریتی" icon={<svg className="w-6 h-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}>

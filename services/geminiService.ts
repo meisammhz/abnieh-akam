@@ -1,18 +1,10 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { ProjectInputs, ProposalContent, ConstructionPhase } from "../types";
+import { ProjectInputs, ProposalContent, ConstructionPhase, AnalysisSection } from "../types";
 import { formatCurrency, toPersianDigits } from "../utils";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-const generateConceptualImage = async (inputs: ProjectInputs): Promise<{ imageBase64: string; prompt: string }> => {
-  const prompt = `Photorealistic architectural rendering of a modern luxury residential complex named '${inputs.projectName}'. 
-  The structure consists of ${inputs.blocks} towers, each with ${inputs.floors} floors above ground and ${inputs.undergroundFloors} underground levels. 
-  The facade is a '${inputs.facade}'.
-  The overall architectural style is '${inputs.architectureStyle}'.
-  The project vibe is '${inputs.projectVibe}'.
-  Show the building from a slightly low angle on a bright, sunny day with a clear blue sky. 
-  Include some green landscaping and trees in the foreground. High detail, 4k resolution.`;
-
+const generateFeatureImage = async (prompt: string): Promise<{ imageBase64: string; prompt: string }> => {
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
@@ -21,13 +13,13 @@ const generateConceptualImage = async (inputs: ProjectInputs): Promise<{ imageBa
     
     for (const part of response.candidates[0].content.parts) {
       if (part.inlineData) {
-        return { imageBase64: part.inlineData.data, prompt: prompt };
+        return { imageBase64: part.inlineData.data, prompt };
       }
     }
-    return { imageBase64: '', prompt: prompt };
+    return { imageBase64: '', prompt };
   } catch (error) {
-    console.error("Gemini Image Generation Error:", error);
-    return { imageBase64: '', prompt: prompt };
+    console.error("Gemini Feature Image Generation Error:", error);
+    return { imageBase64: '', prompt };
   }
 };
 
@@ -62,10 +54,6 @@ export const suggestConstructionPhases = async (
     2.  برای هر فاز، **مدت زمان اجرا به ماه (durationMonths)** را بر اساس مشخصات پروژه تخمین بزن. (مثلا گودبرداری برای ${inputs.undergroundFloors} طبقه منفی زمان بیشتری می‌برد).
     3.  برای هر فاز، **هزینه ساخت هر متر مربع به تومان (costPerMeter)** را به صورت یک عدد خام و بدون جداکننده تخمین بزن. این هزینه باید منعکس کننده نوع سازه و مقیاس پروژه باشد.
     4.  نام فازها باید کوتاه، استاندارد و فارسی باشد.
-
-    **مثال برای یک فاز:**
-    { "name": "گودبرداری و فونداسیون", "durationMonths": 9, "costPerMeter": 15000000 }
-
     خروجی باید یک آرایه JSON کامل از اشیاء باشد و هیچ متن اضافی دیگری نداشته باشد.
   `;
 
@@ -90,10 +78,7 @@ export const suggestConstructionPhases = async (
       },
     });
     const responseText = response.text;
-    if (!responseText) {
-      console.error("Gemini Phase Suggestion Error: Empty response text.");
-      return [];
-    }
+    if (!responseText) throw new Error("Empty response from Gemini for phase suggestion.");
     const suggestedPhases: Omit<ConstructionPhase, 'id'>[] = JSON.parse(responseText);
     return suggestedPhases.map((phase, index) => ({ ...phase, id: Date.now() + index }));
   
@@ -103,6 +88,11 @@ export const suggestConstructionPhases = async (
   }
 };
 
+const EMPTY_ANALYSIS_SECTION: AnalysisSection = {
+  text: "اطلاعات در دسترس نیست.",
+  image: "",
+  imagePrompt: "خطا در تولید تصویر."
+};
 
 export const generateProposalContent = async (inputs: ProjectInputs): Promise<ProposalContent> => {
   const totalDuration = inputs.constructionPhases.reduce((sum, phase) => sum + phase.durationMonths, 0);
@@ -110,6 +100,13 @@ export const generateProposalContent = async (inputs: ProjectInputs): Promise<Pr
   const landCostPerMeter = inputs.unitSharePrice / inputs.unitShareSize;
   const totalBaseCostPerMeter = landCostPerMeter + totalBaseConstructionCost;
   const totalCostWithOverheadPerMeter = totalBaseCostPerMeter * (1 + inputs.adminOverheadPercentage / 100);
+
+  // Occupancy calculations
+  const totalParkingArea = inputs.landArea * (inputs.parkingOccupancyPercentage / 100) * inputs.undergroundFloors;
+  const groundFloorArea = inputs.landArea * (inputs.groundFloorOccupancyPercentage / 100) * 1;
+  const totalResidentialArea = inputs.landArea * (inputs.residentialOccupancyPercentage / 100) * inputs.floors;
+  const calculatedGrossArea = totalParkingArea + groundFloorArea + totalResidentialArea;
+  const isConsistent = inputs.grossTotalArea > 0 && Math.abs((calculatedGrossArea - inputs.grossTotalArea) / inputs.grossTotalArea) < 0.05;
 
   const textPrompt = `
     به عنوان یک مشاور ارشد سرمایه‌گذاری و مهندس معمار در ایران، یک پروپوزال بسیار جامع، عمیق، فنی و متقاعدکننده برای پروژه "${inputs.projectName}" تهیه کن.
@@ -124,53 +121,46 @@ export const generateProposalContent = async (inputs: ProjectInputs): Promise<Pr
     - قیمت تمام شده نهایی (با احتساب بالاسری): متری ${formatCurrency(totalCostWithOverheadPerMeter)} تومان
     - قیمت روز واحد مشابه آماده در منطقه: متری ${formatCurrency(inputs.marketPricePerMeter)} تومان
     - رزومه سازنده: ${inputs.builderResume}
-
-    **مشخصات فنی دقیق:**
-    - **نوع سازه:** ${inputs.constructionType === 'Steel' ? 'اسکلت فلزی' : 'اسکلت بتنی'}
-    - **سیستم فونداسیون:** ${inputs.foundationSystem}
-    - **سیستم سقف‌ها:** ${inputs.roofSystem}
-    - **متریال نما:** ${inputs.facade}
-    - **نازک‌کاری داخلی:** ${inputs.interiorFinishes}
-    - **سیستم سرمایش و گرمایش:** ${inputs.hvacSystem}
-    - **سیستم برق و هوشمندسازی:** ${inputs.electricalSystem}
-
-    **توضیحات تکمیلی:**
-    - **شرح کلی پروژه:** ${inputs.projectDescription}
-    - **جزئیات ساخت:** ${inputs.constructionDescription}
-    - **جزئیات نما:** ${inputs.facadeDescription}
-    - **جزئیات سفت‌کاری:** ${inputs.coreShellDescription}
+    - تراکم کل اعلامی: ${toPersianDigits(inputs.grossTotalArea)} متر مربع
+    - راستی‌آزمایی تراکم: ${isConsistent ? 'اعداد تطابق دارند و این نشانه خوبی است' : 'اعداد دارای مغایرت هستند، این مورد را در تحلیل ریسک لحاظ کن'}
 
     **دستورالعمل نگارش (با دقت و به صورت تفکیک شده اجرا شود):**
     با لحنی بسیار حرفه‌ای، تحلیلی و مطمئن، محتوای هر یک از بخش‌های زیر را تولید کن:
 
-    1.  **خلاصه مدیریتی (executiveSummary):** با یک جمله قدرتمند در مورد فرصت سرمایه‌گذاری شروع کن. بلافاصله به "شکاف ارزشی" بین قیمت تمام شده نهایی و قیمت بازار اشاره کن. چشم‌انداز نهایی پروژه، موقعیت استراتژیک و کیفیت ساخت متمایز آن را (با اشاره به یکی از مشخصات فنی کلیدی) به طور خلاصه بیان کن.
+    1.  **خلاصه مدیریتی (executiveSummary):** با یک جمله قدرتمند در مورد فرصت سرمایه‌گذاری شروع کن. به "شکاف ارزشی" بین قیمت تمام شده و قیمت بازار اشاره کن. چشم‌انداز نهایی، موقعیت استراتژیک و کیفیت ساخت را خلاصه کن.
 
-    2.  **تحلیل عمیق معماری و فنی (architecturalDeepDive):** این بخش باید بسیار دقیق و فنی باشد. از "توضیحات تکمیلی" بالا برای غنی کردن این بخش استفاده کن.
-        - **تحلیل فنی و ساخت:** با استفاده از '${inputs.coreShellDescription}' و '${inputs.constructionDescription}'، توضیح بده که انتخاب '${inputs.roofSystem}' برای سقف‌ها و '${inputs.foundationSystem}' برای فونداسیون چگونه بر سرعت ساخت، استحکام و ایمنی سازه تاثیر می‌گذارد. به نکات خاص و متمایز در فرآیند ساخت اشاره کن.
-        - **تحلیل نما:** با استفاده از '${inputs.facadeDescription}'، توضیح بده که متریال نما (${inputs.facade}) چگونه علاوه بر زیبایی، به عایق‌بندی حرارتی و صوتی و کاهش هزینه‌های بلندمدت ساکنین کمک می‌کند. به جزئیات طراحی اشاره کن.
-        - **تحلیل داخلی و تاسیسات:** شرح بده که انتخاب '${inputs.interiorFinishes}' و سیستم '${inputs.hvacSystem}' چگونه یک "سبک زندگی" لوکس و راحت را برای ساکنین فراهم می‌کند و این پروژه را از رقبای منطقه متمایز می‌سازد.
+    2.  **تحلیل عمیق معماری و فنی (architecturalDeepDive):** این بخش باید بسیار دقیق و فنی باشد. توضیح بده که انتخاب‌های فنی (نوع سازه، سقف، نما) چگونه بر کیفیت، دوام و سرعت ساخت تاثیر می‌گذارند. به تطابق تراکم اعلامی و محاسبه شده به عنوان شاهدی بر دقت در برنامه‌ریزی اشاره کن.
 
-    3.  **تحلیل استراتژیک موقعیت و دسترسی (locationAndAccessAnalysis):** به جای تکرار نام دسترسی‌ها، تحلیل کن که این موقعیت (${inputs.location}) چگونه بر سبک زندگی ساکنین تاثیر می‌گذارد. به پتانسیل رشد منطقه، پروژه‌های توسعه آتی در اطراف آن و چگونگی تبدیل شدن این منطقه به یک هاب ارزشمند در آینده اشاره کن. مزایای (${inputs.locationAdvantages}) را به ارزش سرمایه‌گذاری گره بزن.
+    3.  **تحلیل استراتژیک موقعیت و دسترسی (locationAndAccessAnalysis):** تحلیل کن که این موقعیت چگونه بر سبک زندگی ساکنین و پتانسیل رشد ارزش ملک در آینده تاثیر می‌گذارد. مزایای کلیدی (${inputs.locationAdvantages}) را به ارزش سرمایه‌گذاری گره بزن.
 
-    4.  **مدل مالی و توجیه اقتصادی پروژه (financialModelAndProfitability):** این بخش برای هیئت مدیره و سرمایه‌گذاران است. مدل مالی تعاونی را شرح بده. به صورت شفاف توضیح بده که قیمت تمام شده چگونه محاسبه شده (تفکیک زمین و ساخت). سپس توضیح بده که هزینه‌های بالاسری (${toPersianDigits(inputs.adminOverheadPercentage)}%) چگونه هزینه‌های پیش‌بینی نشده، مدیریت و نظارت را پوشش می‌دهند تا ریسک پروژه کاهش یابد.
+    4.  **مدل مالی و توجیه اقتصادی پروژه (financialModelAndProfitability):** مدل مالی تعاونی را شرح بده. توضیح بده که هزینه‌های بالاسری (${toPersianDigits(inputs.adminOverheadPercentage)}%) چگونه ریسک پروژه را کاهش می‌دهند.
 
-    5.  **ارزش پیشنهادی برای سرمایه‌گذار/خریدار (investorValueProposition):** این بخش برای خریدار نهایی است. به زبان ساده و مستقیم، توضیح بده که سود او از دو محل اصلی تامین می‌شود: ۱) سود آنی ناشی از "شکاف ارزشی" (خرید بسیار ارزان‌تر از واحد آماده) و ۲) سود ناشی از رشد عمومی قیمت مسکن در طی دوره ساخت. با استفاده از اعداد (${formatCurrency(totalCostWithOverheadPerMeter)} در مقابل ${formatCurrency(inputs.marketPricePerMeter)})، این ارزش را ملموس کن.
+    5.  **ارزش پیشنهادی برای سرمایه‌گذار/خریدار (investorValueProposition):** توضیح بده که سود خریدار از دو محل "شکاف ارزشی" اولیه و "رشد عمومی قیمت مسکن" تامین می‌شود. با استفاده از اعداد، این ارزش را ملموس کن.
 
-    6.  **تحلیل ریسک و راهکارهای مدیریتی (riskAndMitigation):** به صورت حرفه‌ای، ریسک‌های اصلی پروژه مانند تورم هزینه‌های ساخت و تاخیر در زمان‌بندی را شناسایی کن. سپس توضیح بده که ساختار تعاونی، قراردادهای شفاف، و مدیریت پروژه حرفه‌ای (${inputs.builderResume}) چگونه این ریسک‌ها را برای اعضا به حداقل می‌رساند.
+    6.  **تحلیل ریسک و راهکارهای مدیریتی (riskAndMitigation):** ریسک‌های اصلی (تورم، تاخیر) را شناسایی کن. توضیح بده که ساختار تعاونی و مدیریت حرفه‌ای چگونه این ریسک‌ها را برای اعضا به حداقل می‌رساند. ${isConsistent ? '' : 'به صورت ویژه، به مغایرت بین تراکم اعلامی و محاسبه شده به عنوان یک ریسک برنامه‌ریزی اشاره کن و پیشنهاد بده که این اعداد باید قبل از شروع پروژه نهایی شوند.'}
+
+    7.  **تحلیل سرمایه‌گذاری برای خریدار (investorAnalysis):** این بخش باید یک مقاله کوتاه و متقاعدکننده برای خریدار سهام باشد. با تمرکز بر آینده، توضیح بده که چرا این پروژه چیزی فراتر از یک خانه است؛ یک سرمایه‌گذاری هوشمندانه است. به مزایای موقعیت (${inputs.locationAdvantages}) اشاره کن و توضیح بده که چگونه این دسترسی‌ها و پتانسیل رشد منطقه، ارزش ملک را در بلندمدت تضمین می‌کند. سپس، به امکانات رفاهی (${inputs.commonAmenities}) بپرداز و شرح بده که این امکانات چگونه یک "سبک زندگی" متمایز ایجاد کرده و تقاضا برای این پروژه را در آینده افزایش می‌دهد. در نهایت، با لحنی الهام‌بخش، چشم‌انداز زندگی در این پروژه را ترسیم کن.
+
+    8.  **تحلیل استراتژیک برای تعاونی (cooperativeAnalysis):** این بخش برای هیئت مدیره و مدیران تعاونی است. پروژه را در مقایسه با بازار منطقه تحلیل کن. توضیح بده که چگونه کیفیت ساخت (${inputs.architectureStyle}, ${inputs.facade}) و امکانات رفاهی، یک مزیت رقابتی پایدار ایجاد می‌کند. به رزومه سازنده (${inputs.builderResume}) به عنوان عاملی برای کاهش ریسک و افزایش اعتبار اشاره کن. در پایان، نتیجه‌گیری کن که این پروژه چگونه با اهداف بلندمدت تعاونی (ایجاد ارزش برای اعضا، تقویت برند) هم‌راستا است و چرا یک پروژه موفق و استراتژیک محسوب می‌شود.
 
     خروجی باید یک JSON کامل با کلیدهای مشخص شده باشد.
   `;
   
-  let textContent: Omit<ProposalContent, 'conceptualImage' | 'conceptualImagePrompt'> = {
-      executiveSummary: "در حال تولید محتوا...",
-      architecturalDeepDive: "",
-      locationAndAccessAnalysis: "",
-      financialModelAndProfitability: "",
-      investorValueProposition: "",
-      riskAndMitigation: ""
-  };
-
   try {
+    const mainConceptualPrompt = `Photorealistic architectural rendering of a modern luxury residential complex named '${inputs.projectName}'. 
+      The structure consists of ${inputs.blocks} towers, each with ${inputs.floors} floors. 
+      The facade is a '${inputs.facade}'.
+      The overall architectural style is '${inputs.architectureStyle}'.
+      Show the building from a slightly low angle on a bright, sunny day. High detail, 4k resolution.`;
+
+    const amenitiesPrompt = `A stunning, photorealistic interior shot of a luxury residential building's amenities. 
+      The scene should feature: ${inputs.commonAmenities}. 
+      The atmosphere is serene, elegant, and modern. Natural light streams in through large windows. High detail, 4k resolution.`;
+      
+    const locationPrompt = `A vibrant, sunny day, street-level photograph capturing the essence of a desirable urban neighborhood in Tehran. 
+      The scene should reflect these advantages: '${inputs.locationAdvantages}'.
+      Show modern apartment buildings, clean sidewalks, some greenery, and perhaps a glimpse of a nearby cafe or park. The feeling should be safe, accessible, and upscale. High detail, photorealistic.`;
+
     const textResponsePromise = ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: textPrompt,
@@ -185,26 +175,44 @@ export const generateProposalContent = async (inputs: ProjectInputs): Promise<Pr
             financialModelAndProfitability: { type: Type.STRING },
             investorValueProposition: { type: Type.STRING },
             riskAndMitigation: { type: Type.STRING },
+            investorAnalysis: { type: Type.STRING },
+            cooperativeAnalysis: { type: Type.STRING },
           },
-          required: ["executiveSummary", "architecturalDeepDive", "locationAndAccessAnalysis", "financialModelAndProfitability", "investorValueProposition", "riskAndMitigation"]
+          required: ["executiveSummary", "architecturalDeepDive", "locationAndAccessAnalysis", "financialModelAndProfitability", "investorValueProposition", "riskAndMitigation", "investorAnalysis", "cooperativeAnalysis"]
         }
       }
     });
 
-    const imageResponsePromise = generateConceptualImage(inputs);
-    const [textResponse, imageResult] = await Promise.all([textResponsePromise, imageResponsePromise]);
+    const [textResponse, mainImage, amenitiesImage, locationImage] = await Promise.all([
+      textResponsePromise,
+      generateFeatureImage(mainConceptualPrompt),
+      generateFeatureImage(amenitiesPrompt),
+      generateFeatureImage(locationPrompt),
+    ]);
     
     const responseText = textResponse.text;
-    if (responseText) {
-      textContent = JSON.parse(responseText);
-    } else {
-       throw new Error("No text response from Gemini.");
-    }
+    if (!responseText) throw new Error("No text response from Gemini.");
+    const parsedText = JSON.parse(responseText);
 
     return {
-      ...textContent,
-      conceptualImage: imageResult.imageBase64,
-      conceptualImagePrompt: imageResult.prompt
+      executiveSummary: parsedText.executiveSummary,
+      architecturalDeepDive: parsedText.architecturalDeepDive,
+      locationAndAccessAnalysis: parsedText.locationAndAccessAnalysis,
+      financialModelAndProfitability: parsedText.financialModelAndProfitability,
+      investorValueProposition: parsedText.investorValueProposition,
+      riskAndMitigation: parsedText.riskAndMitigation,
+      conceptualImage: mainImage.imageBase64,
+      conceptualImagePrompt: mainImage.prompt,
+      investorAnalysis: {
+        text: parsedText.investorAnalysis,
+        image: amenitiesImage.imageBase64,
+        imagePrompt: amenitiesImage.prompt,
+      },
+      cooperativeAnalysis: {
+        text: parsedText.cooperativeAnalysis,
+        image: locationImage.imageBase64,
+        imagePrompt: locationImage.prompt,
+      }
     };
 
   } catch (error) {
@@ -217,7 +225,9 @@ export const generateProposalContent = async (inputs: ProjectInputs): Promise<Pr
       investorValueProposition: "اطلاعات در دسترس نیست.",
       riskAndMitigation: "اطلاعات در دسترس نیست.",
       conceptualImage: '',
-      conceptualImagePrompt: 'خطا در تولید تصویر.'
+      conceptualImagePrompt: 'خطا در تولید تصویر.',
+      investorAnalysis: EMPTY_ANALYSIS_SECTION,
+      cooperativeAnalysis: EMPTY_ANALYSIS_SECTION,
     };
   }
 };

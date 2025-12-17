@@ -25,6 +25,7 @@ export interface ProjectInputs {
   // Areas & Dimensions
   landArea: number;
   parkingOccupancyPercentage: number;
+  groundFloorOccupancyPercentage: number;
   residentialOccupancyPercentage: number;
   
   grossTotalArea: number;
@@ -85,6 +86,12 @@ export interface ProjectInputs {
   electricalSystem: string;
 }
 
+export interface AnalysisSection {
+  text: string;
+  image: string;
+  imagePrompt: string;
+}
+
 export interface ProposalContent {
   executiveSummary: string;
   architecturalDeepDive: string;
@@ -94,6 +101,8 @@ export interface ProposalContent {
   riskAndMitigation: string;
   conceptualImage: string; 
   conceptualImagePrompt: string;
+  investorAnalysis: AnalysisSection;
+  cooperativeAnalysis: AnalysisSection;
 }
 
 export enum ViewMode {
