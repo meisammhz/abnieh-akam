@@ -35,7 +35,7 @@ export const ProgressDonutChart: React.FC<{ physical: number; time: number }> = 
   ];
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
+    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
       <PieChart>
         <Tooltip content={({ active, payload }) => {
              if (active && payload && payload.length) {
@@ -64,7 +64,6 @@ export const ProgressDonutChart: React.FC<{ physical: number; time: number }> = 
           dataKey="value"
           stroke="none"
         >
-           {/* FIX: The 'cornerRadius' prop is not valid on a <Cell> component. It has been removed to fix the compilation error. */}
            <Cell key={`cell-0`} fill={data[0].fill} />
            <Cell key={`cell-1`} fill={data[1].fill} />
         </Pie>
@@ -87,7 +86,7 @@ export const CostBreakdownChart: React.FC<{ landCost: number; constructionCost: 
   const COLORS = ['#fb923c', '#60a5fa'];
   
   return (
-    <ResponsiveContainer width="100%" height="100%" minHeight={180}>
+    <ResponsiveContainer width="100%" height="100%" minHeight={180} minWidth={0}>
       <PieChart>
         <Pie
           data={data}
@@ -112,9 +111,6 @@ export const CostBreakdownChart: React.FC<{ landCost: number; constructionCost: 
 
 
 export const LandUseChart: React.FC<Props> = ({ inputs }) => {
-  // FIX: Updated component to use correct properties from ProjectInputs type.
-  // Replaced `totalArea` with `netResidentialArea` and `commercialArea` with `netCommercialArea`.
-  // Calculated common/service area accurately from `grossTotalArea`.
   const commonAndServiceArea = inputs.grossTotalArea - inputs.netResidentialArea - inputs.netCommercialArea;
   const data = [
     { name: 'بنای مفید مسکونی', value: inputs.netResidentialArea, unit: 'm2' },
@@ -126,7 +122,7 @@ export const LandUseChart: React.FC<Props> = ({ inputs }) => {
 
   return (
      <div className="h-48 w-full">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <PieChart>
           <Pie
             data={data}
@@ -152,7 +148,7 @@ export const LandUseChart: React.FC<Props> = ({ inputs }) => {
 
 export const UnitDistributionChart: React.FC<{ data: UnitMix[] }> = ({ data }) => {
   return (
-    <ResponsiveContainer width="100%" height="100%" minHeight={180}>
+    <ResponsiveContainer width="100%" height="100%" minHeight={180} minWidth={0}>
       <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
         <XAxis type="number" hide />
@@ -205,7 +201,7 @@ export const PhaseCostChart: React.FC<Props> = ({ inputs }) => {
 
   return (
     <div className="h-64 w-full">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <BarChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 40 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
             <XAxis 
