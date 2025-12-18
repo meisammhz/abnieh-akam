@@ -6,7 +6,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, cwd(), '');
   return {
     // تنظیم base به './' باعث می‌شود آدرس‌ها در GitHub Pages (زیرپوشه) به درستی کار کنند
-    base: './',
+    base: '/abnieh-akam./',
     plugins: [react()],
     define: {
       'process.env.API_KEY': JSON.stringify(env.API_KEY)
