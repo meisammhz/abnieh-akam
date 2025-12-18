@@ -1,7 +1,6 @@
 import React from 'react';
 import { ProjectInputs, UnitMix } from '../types';
 import { toPersianDigits, formatCurrency } from '../utils';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { PhaseCostChart, ProgressDonutChart } from './Charts';
 import { TimelineChart } from './TimelineChart';
 
@@ -11,35 +10,35 @@ interface Props {
 }
 
 const KpiCard: React.FC<{ title: string; value: string; subValue?: string; icon: React.ReactElement; color: string }> = ({ title, value, subValue, icon, color }) => (
-    <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 break-inside-avoid">
         <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${color}`}>
             {icon}
         </div>
         <div>
-            <h4 className="text-xs font-medium text-gray-500">{title}</h4>
-            <p className="text-lg font-bold text-gray-800">{value}</p>
+            <h4 className="text-sm font-medium text-gray-500">{title}</h4>
+            <p className="text-xl font-bold text-gray-800">{value}</p>
             {subValue && <p className="text-xs text-gray-400">{subValue}</p>}
         </div>
     </div>
 );
 
 const InfoCard: React.FC<{ title: string; icon: React.ReactElement; children: React.ReactNode }> = ({ title, icon, children }) => (
-    <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 h-full">
-        <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-full break-inside-avoid">
+        <h3 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
             {icon}
             {title}
         </h3>
-        <div className="space-y-2 text-xs">
+        <div className="space-y-3 text-sm">
             {children}
         </div>
     </div>
 );
 
-const InfoCardRow: React.FC<{ label: string; value: string; subValue?: string }> = ({ label, value, subValue }) => (
-    <div className="flex justify-between items-center py-1 border-b border-gray-100 last:border-b-0">
-        <span className="text-gray-500 text-xs">{label}</span>
+const InfoCardRow: React.FC<{ label: string; value: string; subValue?: string; valueColor?: string }> = ({ label, value, subValue, valueColor = "text-gray-700" }) => (
+    <div className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+        <span className="text-gray-500">{label}</span>
         <div className="text-right">
-          <span className="font-semibold text-gray-700 text-sm">{value}</span>
+          <span className={`font-bold ${valueColor}`}>{value}</span>
           {subValue && <span className="text-xs text-gray-400 block">{subValue}</span>}
         </div>
     </div>
@@ -99,6 +98,15 @@ const Dashboard: React.FC<Props> = ({ inputs }) => {
   const commonAndServiceArea = inputs.grossTotalArea - netSellableArea;
   const estimatedUnits = inputs.netResidentialArea > 0 && averageUnitSize > 0 ? Math.round(inputs.netResidentialArea / averageUnitSize) : 0;
 
+  // Municipality Zone 5 Regulations Logic
+  const parkingAreaAvailable = inputs.landArea * (inputs.parkingOccupancyPercentage / 100) * inputs.undergroundFloors;
+  const estParkingProvided = Math.floor(parkingAreaAvailable / 25); // 25sqm per parking spot including ramps/maneuver
+  const requiredParkingResidential = estimatedUnits; // 1 per unit for < 150sqm
+  const requiredParkingCommercial = Math.ceil(inputs.netCommercialArea / 33); // Approx 3 per 100sqm
+  const totalRequiredParking = requiredParkingResidential + requiredParkingCommercial;
+  
+  const parkingStatus = estParkingProvided >= totalRequiredParking;
+
   const totalLandCost = landCostPerMeter * netSellableArea;
   const totalBaseConstructionCost = baseTotalConstructionCostPerMeter * inputs.grossTotalArea;
   const totalOverheadCost = totalBaseConstructionCost * (inputs.adminOverheadPercentage / 100);
@@ -123,7 +131,7 @@ const Dashboard: React.FC<Props> = ({ inputs }) => {
 
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6">
         
         {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
@@ -133,7 +141,7 @@ const Dashboard: React.FC<Props> = ({ inputs }) => {
             <KpiCard title="مدت زمان پروژه" value={`${toPersianDigits(totalDuration)} ماه`} subValue={`${toPersianDigits((totalDuration/12).toFixed(1))} سال`} icon={<svg className="w-6 h-6 text-amber-800" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} color="bg-amber-100" />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <InfoCard title="حیاتی پروژه" icon={<svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>}>
                 <InfoCardRow label="مساحت زمین" value={`${toPersianDigits(inputs.landArea.toLocaleString())} م²`} />
                 <InfoCardRow label="تراکم کل" value={`${toPersianDigits(inputs.grossTotalArea.toLocaleString())} م²`} />
@@ -142,14 +150,25 @@ const Dashboard: React.FC<Props> = ({ inputs }) => {
                 <InfoCardRow label="نوع سازه" value={inputs.constructionType === 'Steel' ? 'اسکلت فلزی' : inputs.constructionType === 'Concrete' ? 'اسکلت بتنی' : 'قالب تونلی'} />
             </InfoCard>
 
+            <InfoCard title="ضوابط شهرداری (منطقه ۵)" icon={<svg className="w-5 h-5 text-akam-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>}>
+                <InfoCardRow label="واحدهای مسکونی (۶۰-۱۲۰ م)" value={`~ ${toPersianDigits(estimatedUnits)} واحد`} subValue="تعداد کل واحد مسکونی" />
+                <InfoCardRow label="پارکینگ مورد نیاز (ضوابط)" value={`${toPersianDigits(totalRequiredParking)} واحد`} subValue={`${toPersianDigits(requiredParkingResidential)} مسکونی + ${toPersianDigits(requiredParkingCommercial)} تجاری`} />
+                <InfoCardRow label="پارکینگ تامین شده (برآورد)" value={`${toPersianDigits(estParkingProvided)} واحد`} subValue="بر اساس سطح اشغال منفی" valueColor={parkingStatus ? 'text-emerald-600' : 'text-rose-600'} />
+                <div className={`mt-2 p-2 rounded text-[10px] text-center ${parkingStatus ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+                    {parkingStatus ? 'تعداد پارکینگ تامین شده با ضوابط منطقه ۵ مطابقت دارد.' : 'کسری پارکینگ مشاهده شد. نیاز به بازبینی در سطح اشغال یا تعداد طبقات منفی.'}
+                </div>
+            </InfoCard>
+
             <InfoCard title="تحلیل متراژ و واحدها" icon={<svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>}>
                 <InfoCardRow label="متراژ کل مفید" value={`${toPersianDigits(netSellableArea.toLocaleString())} م²`} />
                 <InfoCardRow label="متراژ مفید مسکونی" value={`${toPersianDigits(inputs.netResidentialArea.toLocaleString())} م²`} />
                 <InfoCardRow label="متراژ مفید تجاری" value={`${toPersianDigits(inputs.netCommercialArea.toLocaleString())} م²`} />
                 <InfoCardRow label="مشاعات و خدماتی" value={`${toPersianDigits(commonAndServiceArea.toLocaleString())} م²`} subValue={inputs.grossTotalArea > 0 ? `${toPersianDigits((commonAndServiceArea / inputs.grossTotalArea * 100).toFixed(1))}% از کل` : ''} />
-                <InfoCardRow label="تعداد واحد تخمینی" value={`~ ${toPersianDigits(estimatedUnits)} واحد`} />
+                <InfoCardRow label="میانگین متراژ واحدها" value={`${toPersianDigits(Math.round(averageUnitSize))} متر`} />
             </InfoCard>
+        </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <InfoCard title="خلاصه مالی کلان پروژه (دیدگاه تعاونی)" icon={<svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}>
                 <InfoCardRow label="هزینه کل زمین" value={formatBillion(totalLandCost)} />
                 <InfoCardRow label="هزینه کل ساخت" value={formatBillion(totalConstructionCostWithOverhead)} subValue="(با بالاسری)" />
@@ -168,25 +187,25 @@ const Dashboard: React.FC<Props> = ({ inputs }) => {
             </InfoCard>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 break-inside-avoid">
             <h3 className="text-base font-bold text-gray-800 mb-4">نمودار گانت پیشرفت پروژه</h3>
             <TimelineChart phases={inputs.constructionPhases} totalDuration={totalDuration} elapsedMonths={inputs.elapsedMonths} />
         </div>
       
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            <div className="lg:col-span-3 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div className="lg:col-span-3 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 break-inside-avoid">
                 <h3 className="text-base font-bold text-gray-800 mb-4">تحلیل جامع پیشرفت فازها</h3>
                 <div className="h-48">
                     <ProgressDonutChart physical={(inputs.elapsedMonths / totalDuration) * 100} time={(inputs.elapsedMonths / totalDuration) * 100} />
                 </div>
             </div>
-            <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 break-inside-avoid">
                  <h3 className="text-base font-bold text-gray-800 mb-4">هزینه کل ساخت به تفکیک فاز</h3>
                  <PhaseCostChart inputs={inputs} />
               </div>
         </div>
 
-      <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-lg text-white overflow-hidden">
+      <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-lg text-white overflow-hidden break-inside-avoid">
          <div className="p-6 md:p-8 border-b border-slate-700 flex flex-col md:flex-row justify-between items-start md:items-center">
             <div>
                <h3 className="text-xl font-bold flex items-center gap-2 text-white">تحلیل سود و زیان از دیدگاه سهام‌دار (هر سهم)</h3>
@@ -202,41 +221,46 @@ const Dashboard: React.FC<Props> = ({ inputs }) => {
          <div className="overflow-x-auto">
             <table className="w-full text-right">
               <thead>
-                <tr className="bg-slate-900/50 text-slate-400 text-xs">
-                  <th className="p-3 font-normal">شاخص‌های مالی (هر سهم {toPersianDigits(inputs.unitShareSize)} متری)</th>
-                  <th className="p-3 font-normal text-rose-300">سناریو بدبینانه</th>
-                  <th className="p-3 font-normal text-blue-300 bg-white/5">سناریو محتمل</th>
-                  <th className="p-3 font-normal text-emerald-300">سناریو خوش‌بینانه</th>
+                <tr className="bg-slate-900/50 text-slate-400 text-sm">
+                  <th className="p-4 font-normal">شاخص‌های مالی (هر سهم {toPersianDigits(inputs.unitShareSize)} متری)</th>
+                  <th className="p-4 font-normal text-rose-300">سناریو بدبینانه</th>
+                  <th className="p-4 font-normal text-blue-300 bg-white/5">سناریو محتمل</th>
+                  <th className="p-4 font-normal text-emerald-300">سناریو خوش‌بینانه</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-700 text-xs">
+              <tbody className="divide-y divide-slate-700 text-sm">
                 <tr className="hover:bg-white/5">
-                  <td className="p-3 text-slate-300">قیمت تمام شده برای خریدار</td>
-                  <td className="p-3 font-mono text-slate-200">{formatCurrency(Math.round(pessimisticScenario.totalCostToBuyer))}</td>
-                  <td className="p-3 font-mono text-white font-bold bg-white/5">{formatCurrency(Math.round(realisticScenario.totalCostToBuyer))}</td>
-                  <td className="p-3 font-mono text-slate-200">{formatCurrency(Math.round(optimisticScenario.totalCostToBuyer))}</td>
+                  <td className="p-4 text-slate-300">قیمت تمام شده برای خریدار</td>
+                  <td className="p-4 font-mono text-slate-200">{formatCurrency(Math.round(pessimisticScenario.totalCostToBuyer))}</td>
+                  <td className="p-4 font-mono text-white font-bold bg-white/5">{formatCurrency(Math.round(realisticScenario.totalCostToBuyer))}</td>
+                  <td className="p-4 font-mono text-slate-200">{formatCurrency(Math.round(optimisticScenario.totalCostToBuyer))}</td>
                 </tr>
                  <tr className="hover:bg-white/5">
-                  <td className="p-3 text-slate-300">ارزش فروش سهم (زمان تحویل)</td>
-                  <td className="p-3 font-mono text-rose-300 font-bold">{formatCurrency(Math.round(pessimisticScenario.futureValueShare))}</td>
-                  <td className="p-3 font-mono text-blue-300 font-bold bg-white/5 text-base">{formatCurrency(Math.round(realisticScenario.futureValueShare))}</td>
-                  <td className="p-3 font-mono text-emerald-300 font-bold">{formatCurrency(Math.round(optimisticScenario.futureValueShare))}</td>
+                  <td className="p-4 text-slate-300">ارزش فروش سهم (زمان تحویل)</td>
+                  <td className="p-4 font-mono text-rose-300 font-bold">{formatCurrency(Math.round(pessimisticScenario.futureValueShare))}</td>
+                  <td className="p-4 font-mono text-blue-300 font-bold bg-white/5 text-lg">{formatCurrency(Math.round(realisticScenario.futureValueShare))}</td>
+                  <td className="p-4 font-mono text-emerald-300 font-bold">{formatCurrency(Math.round(optimisticScenario.futureValueShare))}</td>
                 </tr>
                 <tr className="hover:bg-white/5">
-                  <td className="p-3 text-slate-300">سود خالص خریدار</td>
-                  <td className="p-3 font-mono text-rose-400">+{formatCurrency(Math.round(pessimisticScenario.buyerProfit))}</td>
-                  <td className="p-3 font-mono text-blue-400 font-bold bg-white/5">+{formatCurrency(Math.round(realisticScenario.buyerProfit))}</td>
-                  <td className="p-3 font-mono text-emerald-400">+{formatCurrency(Math.round(optimisticScenario.buyerProfit))}</td>
+                  <td className="p-4 text-slate-300">سود خالص خریدار</td>
+                  <td className="p-4 font-mono text-rose-400">+{formatCurrency(Math.round(pessimisticScenario.buyerProfit))}</td>
+                  <td className="p-4 font-mono text-blue-400 font-bold bg-white/5">+{formatCurrency(Math.round(realisticScenario.buyerProfit))}</td>
+                  <td className="p-4 font-mono text-emerald-400">+{formatCurrency(Math.round(optimisticScenario.buyerProfit))}</td>
                 </tr>
                 <tr className="bg-slate-800/80">
-                  <td className="p-3 text-slate-300 border-t border-slate-700 font-bold">بازدهی سالانه (Annual ROI)</td>
-                  <td className="p-3 font-bold text-rose-400 border-t border-slate-700 dir-ltr text-right">{toPersianDigits(pessimisticScenario.annualRoi.toFixed(1))}٪</td>
-                  <td className="p-3 font-bold text-blue-400 bg-white/5 border-t border-slate-600 text-base dir-ltr text-right">{toPersianDigits(realisticScenario.annualRoi.toFixed(1))}٪</td>
-                  <td className="p-3 font-bold text-emerald-400 border-t border-slate-700 dir-ltr text-right">{toPersianDigits(optimisticScenario.annualRoi.toFixed(1))}٪</td>
+                  <td className="p-4 text-slate-300 border-t border-slate-700 font-bold">بازدهی سالانه (Annual ROI)</td>
+                  <td className="p-4 font-bold text-rose-400 border-t border-slate-700 dir-ltr text-right">{toPersianDigits(pessimisticScenario.annualRoi.toFixed(1))}٪</td>
+                  <td className="p-4 font-bold text-blue-400 bg-white/5 border-t border-slate-600 text-lg dir-ltr text-right">{toPersianDigits(realisticScenario.annualRoi.toFixed(1))}٪</td>
+                  <td className="p-4 font-bold text-emerald-400 border-t border-slate-700 dir-ltr text-right">{toPersianDigits(optimisticScenario.annualRoi.toFixed(1))}٪</td>
                 </tr>
               </tbody>
             </table>
          </div>
+      </div>
+
+      <div className="text-center mt-8 pt-8 border-t border-gray-200 print:mt-auto break-inside-avoid">
+          <p className="text-gray-600 text-sm font-bold">این گزارش توسط میثم میرمحمودزاده تهیه شده است</p>
+          <p className="text-xs text-gray-400 mt-2">{inputs.projectName}</p>
       </div>
     </div>
   );

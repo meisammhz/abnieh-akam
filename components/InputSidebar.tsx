@@ -112,7 +112,7 @@ const InputSidebar: React.FC<Props> = ({ inputs, setInputs, onGenerate, isGenera
 
 
   return (
-    <div className="w-full lg:w-96 bg-white border-l border-gray-200 h-full overflow-y-auto p-5 shadow-xl z-10 shrink-0 text-sm scrollbar-thin scrollbar-thumb-gray-300">
+    <div className="no-print w-full lg:w-96 bg-white border-l border-gray-200 h-full overflow-y-auto p-5 shadow-xl z-10 shrink-0 text-sm scrollbar-thin scrollbar-thumb-gray-300">
       <h2 className="text-lg font-bold text-gray-800 mb-6 border-b pb-3 flex items-center justify-between">
         <span>تنظیمات پروژه</span>
         <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded">نسخه حرفه‌ای</span>

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { pdf } from '@react-pdf/renderer';
 import InputSidebar from './components/InputSidebar';
 import Dashboard from './components/Dashboard';
 import ProposalView from './components/ProposalView';
-import PdfReport from './components/PdfReport';
 import PdfDashboard from './components/PdfDashboard';
-import { PDFViewer, PDFDownloadLink, BlobProvider } from '@react-pdf/renderer';
+import PdfReport from './components/PdfReport';
 import { ProjectInputs, ProposalContent, ViewMode, AnalysisSection } from './types';
 import { generateProposalContent, suggestConstructionPhases } from './services/geminiService';
 
@@ -53,8 +53,8 @@ const INITIAL_INPUTS: ProjectInputs = {
   secondPaymentDate: '1403/12/20',
   additionalFee: 50000000,
   unitMix: [
-    { size: '۶۰-۸۰ متر', percentage: 25 },
-    { size: '۸۰-۱۰۰ متر', percentage: 50 },
+    { size: '۶۰-۸۰ متر', percentage: 30 },
+    { size: '۸۰-۱۰۰ متر', percentage: 45 },
     { size: '۱۰۰-۱۲۰ متر', percentage: 25 },
   ],
   
@@ -168,10 +168,7 @@ const App: React.FC = () => {
   const [proposalContent, setProposalContent] = useState<ProposalContent>(INITIAL_CONTENT);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSuggesting, setIsSuggesting] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false); // State for sidebar visibility
-  const [showPdfPreview, setShowPdfPreview] = useState<boolean>(false); // State for PDF preview visibility
-  const [pdfMode, setPdfMode] = useState<'dashboard' | 'proposal'>('dashboard');
-  const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const handleGenerateProposal = async () => {
     setIsGenerating(true);
@@ -219,29 +216,45 @@ const App: React.FC = () => {
     });
   };
 
-  return (
-    <div className="flex h-screen bg-gray-50 flex-col md:flex-row overflow-hidden">
-      {/* Sidebar Toggle Button for small screens */}
-      <button
-        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-indigo-600 text-white rounded-full shadow-lg"
-        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-      >
-        {isSidebarOpen ? (
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        ) : (
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        )}
-      </button>
+  const handleExportPDF = async () => {
+    setIsDownloading(true);
+    try {
+      let doc;
+      let filename = 'project.pdf';
 
-      {/* Input Sidebar */}
-      <div className={`fixed inset-y-0 right-0 z-40 w-full md:static md:w-96 bg-white border-l border-gray-200 h-full overflow-y-auto p-5 shadow-xl shrink-0 text-sm scrollbar-thin scrollbar-thumb-gray-300 transform ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out`}>
-        <InputSidebar
-          inputs={inputs}
-          setInputs={setInputs}
+      if (viewMode === ViewMode.DASHBOARD) {
+        doc = <PdfDashboard inputs={inputs} />;
+        filename = `${inputs.projectName}-dashboard.pdf`;
+      } else {
+        doc = <PdfReport inputs={inputs} content={proposalContent} />;
+        filename = `${inputs.projectName}-proposal.pdf`;
+      }
+
+      const blob = await pdf(doc).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('PDF Generation failed', err);
+      alert('خطا در تولید فایل PDF. لطفاً مجدداً تلاش کنید.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  return (
+    // "print:h-auto print:overflow-visible print:block" forces the container to expand fully on paper
+    <div className="flex h-screen bg-gray-50 flex-col md:flex-row overflow-hidden app-container print:h-auto print:overflow-visible print:block">
+      
+      <div className="input-sidebar no-print print:hidden">
+        <InputSidebar 
+          inputs={inputs} 
+          setInputs={setInputs} 
           onGenerate={handleGenerateProposal}
           isGenerating={isGenerating}
           onSuggestPhases={handleSuggestPhases}
@@ -249,12 +262,10 @@ const App: React.FC = () => {
         />
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-200 py-3 px-6 flex justify-between items-center shadow-sm shrink-0 z-20">
+      <div className="flex-1 flex flex-col h-full overflow-hidden relative content-wrapper print:h-auto print:overflow-visible print:block">
+        <header className="bg-white border-b border-gray-200 py-3 px-6 flex justify-between items-center shadow-sm shrink-0 z-20 print:border-none print:shadow-none">
           <div className="flex items-center gap-3">
-             <div className="w-10 h-10 bg-akam-600 rounded-lg flex items-center justify-center text-white font-bold overflow-hidden shadow-md">
+             <div className="w-10 h-10 bg-akam-600 rounded-lg flex items-center justify-center text-white font-bold overflow-hidden shadow-md print:shadow-none">
                {inputs.companyLogo ? (
                  <img src={inputs.companyLogo} alt="Logo" className="w-full h-full object-cover" />
                ) : <span className="text-xl">آ</span>}
@@ -265,87 +276,34 @@ const App: React.FC = () => {
              </div>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 no-print print:hidden">
+            <button 
+              onClick={handleExportPDF} 
+              disabled={isDownloading}
+              className={`hidden sm:flex items-center gap-2 px-3 py-2 text-xs font-medium text-white bg-gray-800 hover:bg-gray-900 rounded-lg transition-colors shadow-sm ${isDownloading ? 'opacity-70 cursor-wait' : ''}`}
+            >
+                {isDownloading ? (
+                   <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                ) : (
+                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                   </svg>
+                )}
+                {isDownloading ? 'در حال تولید فایل...' : (viewMode === ViewMode.DASHBOARD ? 'دانلود PDF داشبورد' : 'دانلود PDF پروپوزال')}
+            </button>
             <button onClick={handleShare} className="hidden sm:flex items-center gap-2 px-3 py-2 text-xs text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-akam-600 transition-colors">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
               اشتراک‌گذاری
             </button>
             <div className="flex bg-gray-100 p-1 rounded-lg">
-              <button onClick={() => { setViewMode(ViewMode.DASHBOARD); setShowPdfPreview(false); }} className={`px-4 py-2 text-xs rounded-md transition-all ${viewMode === ViewMode.DASHBOARD && !showPdfPreview ? 'bg-white shadow text-akam-700 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>داشبورد</button>
-              <button onClick={() => { setViewMode(ViewMode.PROPOSAL); setShowPdfPreview(false); }} className={`px-4 py-2 text-xs rounded-md transition-all ${viewMode === ViewMode.PROPOSAL && !showPdfPreview ? 'bg-white shadow text-akam-700 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>پروپوزال</button>
-              <button onClick={() => setShowPdfPreview(true)} className={`px-4 py-2 text-xs rounded-md transition-all ${showPdfPreview ? 'bg-white shadow text-akam-700 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>خروجی PDF</button>
-              <select value={pdfMode} onChange={(e) => setPdfMode(e.target.value as 'dashboard' | 'proposal')} className="ml-2 px-2 py-2 text-xs rounded-md border border-gray-200 bg-white text-gray-700">
-                <option value="dashboard">داشبورد</option>
-                <option value="proposal">پروپوزال</option>
-              </select>
+              <button onClick={() => setViewMode(ViewMode.DASHBOARD)} className={`px-4 py-2 text-xs rounded-md transition-all ${viewMode === ViewMode.DASHBOARD ? 'bg-white shadow text-akam-700 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>داشبورد</button>
+              <button onClick={() => setViewMode(ViewMode.PROPOSAL)} className={`px-4 py-2 text-xs rounded-md transition-all ${viewMode === ViewMode.PROPOSAL ? 'bg-white shadow text-akam-700 font-bold' : 'text-gray-500 hover:text-gray-700'}`}>پروپوزال</button>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50 scroll-smooth">
-          {showPdfPreview ? (
-            isMobile ? (
-              <div className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <PDFDownloadLink
-                    document={pdfMode === 'dashboard' ? <PdfDashboard inputs={inputs} /> : <PdfReport inputs={inputs} content={proposalContent} />}
-                    fileName={pdfMode === 'dashboard' ? `dashboard-${inputs.projectName}.pdf` : `proposal-${inputs.projectName}.pdf`}
-                  >
-                    {({ loading }) => (
-                      <button className="px-3 py-2 text-xs rounded-md bg-emerald-600 text-white">
-                        {loading ? 'در حال آماده‌سازی…' : 'دانلود PDF'}
-                      </button>
-                    )}
-                  </PDFDownloadLink>
-                  <BlobProvider document={pdfMode === 'dashboard' ? <PdfDashboard inputs={inputs} /> : <PdfReport inputs={inputs} content={proposalContent} />}
-                  >
-                    {({ url, blob, loading }) => (
-                      <>
-                        <button
-                          disabled={loading}
-                          onClick={() => url && window.open(url, '_blank')}
-                          className="px-3 py-2 text-xs rounded-md bg-blue-600 text-white disabled:opacity-50"
-                        >
-                          باز کردن
-                        </button>
-                        <button
-                          disabled={loading}
-                          onClick={async () => {
-                            try {
-                              if (blob && navigator.canShare && navigator.canShare({ files: [new File([blob], `${pdfMode}-${inputs.projectName}.pdf`, { type: 'application/pdf' })] })) {
-                                await navigator.share({
-                                  title: pdfMode === 'dashboard' ? `داشبورد پروژه ${inputs.projectName}` : `پروپوزال پروژه ${inputs.projectName}`,
-                                  files: [new File([blob], `${pdfMode}-${inputs.projectName}.pdf`, { type: 'application/pdf' })],
-                                });
-                              } else if (url) {
-                                window.open(url, '_blank');
-                              }
-                            } catch (e) {
-                              if (url) window.open(url, '_blank');
-                            }
-                          }}
-                          className="px-3 py-2 text-xs rounded-md bg-amber-600 text-white disabled:opacity-50"
-                        >
-                          اشتراک‌گذاری
-                        </button>
-                      </>
-                    )}
-                  </BlobProvider>
-                </div>
-                <div className="text-xs text-gray-500">
-                  در موبایل برخی مرورگرها نمایش مستقیم PDF محدود است؛ از دکمه‌های بالا برای دانلود، باز کردن یا اشتراک‌گذاری استفاده کنید.
-                </div>
-              </div>
-            ) : (
-              <PDFViewer style={{ width: '100%', height: '100vh' }}>
-                {pdfMode === 'dashboard' ? (
-                  <PdfDashboard inputs={inputs} />
-                ) : (
-                  <PdfReport inputs={inputs} content={proposalContent} />
-                )}
-              </PDFViewer>
-            )
-          ) : viewMode === ViewMode.DASHBOARD ? (
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50 scroll-smooth main-content print:h-auto print:overflow-visible print:block print:p-0">
+          {viewMode === ViewMode.DASHBOARD ? (
             <Dashboard inputs={inputs} />
           ) : (
             <ProposalView inputs={inputs} content={proposalContent} />

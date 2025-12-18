@@ -63,6 +63,7 @@ export const ProgressDonutChart: React.FC<{ physical: number; time: number }> = 
           paddingAngle={0}
           dataKey="value"
           stroke="none"
+          isAnimationActive={false} // Important for PDF export
         >
            <Cell key={`cell-0`} fill={data[0].fill} />
            <Cell key={`cell-1`} fill={data[1].fill} />
@@ -97,6 +98,7 @@ export const CostBreakdownChart: React.FC<{ landCost: number; constructionCost: 
           outerRadius={80}
           innerRadius={50}
           paddingAngle={5}
+          isAnimationActive={false} // Important for PDF export
         >
           {data.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -132,6 +134,7 @@ export const LandUseChart: React.FC<Props> = ({ inputs }) => {
             outerRadius={70}
             paddingAngle={5}
             dataKey="value"
+            isAnimationActive={false} // Important for PDF export
           >
             {data.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="none" />
@@ -177,7 +180,7 @@ export const UnitDistributionChart: React.FC<{ data: UnitMix[] }> = ({ data }) =
              return null;
           }}
         />
-        <Bar dataKey="percentage" barSize={20} radius={[0, 10, 10, 0]}>
+        <Bar dataKey="percentage" barSize={20} radius={[0, 10, 10, 0]} isAnimationActive={false}>
           {data.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
@@ -231,7 +234,7 @@ export const PhaseCostChart: React.FC<Props> = ({ inputs }) => {
                 return null;
             }}
             />
-            <Bar dataKey="cost" radius={[5, 5, 0, 0]}>
+            <Bar dataKey="cost" radius={[5, 5, 0, 0]} isAnimationActive={false}>
             {chartData.map((entry) => (
                 <Cell key={`cell-${entry.name}`} fill={entry.fill} />
             ))}
