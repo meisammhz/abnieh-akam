@@ -4,14 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="theme-color" content="#16a34a" />
+    
+    <!-- PWA & Mobile Meta Tags -->
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="نارنجستان ۷" />
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/9431/9431166.png" />
     <link rel="manifest" href="./manifest.json" />
+    
     <title>سامانه مدیریت پروژه نارنجستان ۷</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    
     <script>
       tailwind.config = {
         theme: {
@@ -37,6 +43,7 @@
         },
       }
     </script>
+    
     <style>
       body {
         font-family: 'Vazirmatn', sans-serif;
@@ -65,7 +72,8 @@
         body { color: #000 !important; background-color: #fff !important; }
       }
     </style>
-<script type="importmap">
+
+    <script type="importmap">
 {
   "imports": {
     "react": "https://esm.sh/react@18.2.0",
@@ -82,9 +90,10 @@
   }
 }
 </script>
-</head>
+  </head>
   <body>
     <div id="root"></div>
+    <!-- استفاده از مسیر نسبی برای لود شدن درست در گیت‌هاب -->
     <script type="module" src="./index.tsx"></script>
   </body>
 </html>
